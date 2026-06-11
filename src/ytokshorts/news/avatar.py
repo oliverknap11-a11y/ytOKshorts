@@ -27,9 +27,11 @@ from ..errors import YtokshortsError
 log = logging.getLogger("ytokshorts")
 
 _VIDEO_EXTS = (".mp4", ".mov", ".webm", ".mkv", ".m4v")
+_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp")
 HEYGEN_GENERATE = "https://api.heygen.com/v2/video/generate"
 HEYGEN_STATUS = "https://api.heygen.com/v1/video_status.get"
 HEYGEN_UPLOAD = "https://upload.heygen.com/v1/asset"
+HEYGEN_UPLOAD_PHOTO = "https://upload.heygen.com/v1/talking_photo"
 
 
 # --------------------------------------------------------------------------- #
@@ -90,10 +92,44 @@ def build_generate_payload(
     }
 
 
+def build_talking_photo_payload(
+    talking_photo_id: str, audio_url: str, *, width: int, height: int,
+    chroma_color: str, use_avatar_iv: bool = True,
+) -> dict:
+    """Build the /video/generate body for a *talking photo* (your uploaded image)."""
+    background = (
+        {"type": "color", "value": chroma_color} if chroma_color else {"type": "transparent"}
+    )
+    character: dict = {"type": "talking_photo", "talking_photo_id": talking_photo_id}
+    if use_avatar_iv:
+        character["use_avatar_iv_model"] = True
+    return {
+        "video_inputs": [
+            {
+                "character": character,
+                "voice": {"type": "audio", "audio_url": audio_url},
+                "background": background,
+            }
+        ],
+        "dimension": {"width": width, "height": height},
+    }
+
+
 def parse_status(data: dict) -> tuple[str, str | None]:
     """Extract ``(status, video_url)`` from a HeyGen status.get response (pure)."""
     payload = data.get("data", data)
     return payload.get("status", "unknown"), payload.get("video_url")
+
+
+def resolve_photo(country: str | None, config: AvatarConfig) -> Path | None:
+    """Find the per-country avatar still (or the neutral still) in ``photo_dir``."""
+    base = Path(config.photo_dir)
+    for key in ([country] if country else []) + ["neutral"]:
+        for ext in _IMAGE_EXTS:
+            cand = base / f"{key}{ext}"
+            if cand.exists():
+                return cand
+    return None
 
 
 # --------------------------------------------------------------------------- #
@@ -134,6 +170,19 @@ def upload_audio(path: str | Path, api_key: str) -> str:
     if not url:
         raise YtokshortsError(f"HeyGen upload returned no audio URL: {data}")
     return url
+
+
+def upload_talking_photo(image_path: str | Path, api_key: str) -> str:
+    """Upload a still image to HeyGen and return its ``talking_photo_id``."""
+    raw = Path(image_path).read_bytes()
+    ctype = "image/png" if str(image_path).lower().endswith(".png") else "image/jpeg"
+    data = _request(HEYGEN_UPLOAD_PHOTO, api_key=api_key, method="POST", data=raw,
+                    content_type=ctype)
+    payload = data.get("data", data)
+    tp_id = payload.get("talking_photo_id") or payload.get("id")
+    if not tp_id:
+        raise YtokshortsError(f"HeyGen talking-photo upload returned no id: {data}")
+    return tp_id
 
 
 def submit_video(payload: dict, api_key: str) -> str:
@@ -183,6 +232,29 @@ def generate_presenter(
     audio_url = upload_audio(audio_path, key)
     payload = build_generate_payload(
         avatar_id, audio_url, width=width, height=height, chroma_color=config.chroma_color
+    )
+    video_id = submit_video(payload, key)
+    url = poll_status(video_id, key)
+    return _download(url, out_path)
+
+
+def generate_from_photo(
+    image_path: str | Path,
+    audio_path: str | Path,
+    config: AvatarConfig,
+    *,
+    width: int,
+    height: int,
+    out_path: str | Path,
+) -> Path:
+    """Lip-sync a still image to our audio via HeyGen Talking Photo (green bg)."""
+    key = _api_key(config)
+    log.info("  HeyGen: uploading photo + audio, lip-syncing your avatar...")
+    talking_photo_id = upload_talking_photo(image_path, key)
+    audio_url = upload_audio(audio_path, key)
+    payload = build_talking_photo_payload(
+        talking_photo_id, audio_url, width=width, height=height,
+        chroma_color=config.chroma_color, use_avatar_iv=config.use_avatar_iv,
     )
     video_id = submit_video(payload, key)
     url = poll_status(video_id, key)

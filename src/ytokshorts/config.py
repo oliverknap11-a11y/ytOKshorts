@@ -185,10 +185,19 @@ class AvatarConfig:
     """
 
     enabled: bool = False
-    mode: str = "clips"                 # "clips" | "heygen"
+    # "clips"  — overlay per-country presenter clips you supply (free)
+    # "photo"  — lip-sync per-country still images via a provider (your own avatar)
+    # "heygen" — generate from a HeyGen-hosted avatar_id
+    mode: str = "clips"
     # clips mode: a folder with <country>.mp4 (e.g. england.mp4) + neutral.mp4
     clips_dir: str = "presenters"
-    # heygen mode: env var holding the API key, and country -> avatar_id map.
+    # photo mode: a folder with <country>.png (e.g. portugal.png) + neutral.png
+    photo_dir: str = "avatars"
+    # photo mode: matte the subject onto a green screen so we can key her onto the
+    # pitch (set False if your images already have a green/transparent background).
+    green_matte: bool = True
+    use_avatar_iv: bool = True          # HeyGen Avatar IV motion engine (photo mode)
+    # API key env var, plus heygen-mode country -> avatar_id map.
     api_key_env: str = "HEYGEN_API_KEY"
     avatar_map: dict = field(default_factory=dict)   # country -> HeyGen avatar_id
     neutral_avatar: str = ""                          # avatar_id for neutral / your-logo kit
@@ -203,8 +212,8 @@ class AvatarConfig:
     subtitles: str = "top"              # "top" | "center" | "full"
 
     def __post_init__(self) -> None:
-        if self.mode not in ("clips", "heygen"):
-            raise ConfigError("avatar.mode must be 'clips' or 'heygen'")
+        if self.mode not in ("clips", "photo", "heygen"):
+            raise ConfigError("avatar.mode must be 'clips', 'photo', or 'heygen'")
         if self.position not in ("bottom", "center"):
             raise ConfigError("avatar.position must be 'bottom' or 'center'")
         if self.subtitles not in ("top", "center", "full"):

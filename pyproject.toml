@@ -40,11 +40,13 @@ news = [
     "edge-tts>=6.1",
     "pillow>=9.0",
 ]
+# AI presenter (photo lip-sync): background removal for green-screen keying.
+avatar = ["rembg>=2.0", "pillow>=9.0"]
 # Optional numpy fast-path for audio energy analysis (pure-Python fallback exists).
 fast = ["numpy>=1.23"]
 dev = ["pytest>=7.0"]
 all = [
-    "ytokshorts[captions,upload,news,fast,dev]",
+    "ytokshorts[captions,upload,news,avatar,fast,dev]",
 ]
 
 [project.scripts]

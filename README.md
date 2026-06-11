@@ -139,21 +139,27 @@ head and a kit chosen from the country the story is about (neutral stories use a
 your-logo kit). The country is detected from the headline; the presenter is
 chroma-keyed (green screen) onto the pitch.
 
-Two engines (`avatar.mode`):
+Three engines (`avatar.mode`):
 
-- **`clips`** (free) — you supply per-country presenter clips in a folder
-  (`presenters/england.mp4`, `presenters/neutral.mp4`, …); they're overlaid and
-  your edge-tts voiceover is kept. Render the looks once however you like.
-- **`heygen`** (paid) — generates a lip-synced talking head per story via the
-  [HeyGen API](https://www.heygen.com/api-pricing) (≈ $1/min, `x-api-key`),
-  lip-synced to the edge-tts audio. Set `HEYGEN_API_KEY`, create one avatar look
-  per national kit in HeyGen, and map `country → avatar_id` under
-  `[avatar.avatar_map]`.
+- **`clips`** (free) — supply per-country presenter clips in a folder
+  (`presenters/england.mp4`, `presenters/neutral.mp4`, …); overlaid with your
+  edge-tts voiceover kept. Render the looks once however you like.
+- **`photo`** (paid lip-sync) — supply your **own per-country avatar images**
+  (`avatars/portugal.png`, `avatars/neutral.png`, …). The tool mattes each onto
+  a green screen (`rembg`), lip-syncs it to the voiceover via **HeyGen Talking
+  Photo** (`x-api-key`, Avatar IV), then chroma-keys her onto the pitch.
+- **`heygen`** (paid) — generate from a HeyGen-hosted `avatar_id` per country
+  (`[avatar.avatar_map]`).
 
 ```bash
-ytokshorts news --count 3 --avatar --presenters ./presenters   # clips mode
-ytokshorts news --count 3 --avatar --avatar-mode heygen          # HeyGen mode
+ytokshorts news --count 3 --avatar --presenters ./presenters            # clips
+ytokshorts news --count 3 --avatar --avatar-mode photo --avatars ./avatars  # your image, lip-synced
+ytokshorts news --count 3 --avatar --avatar-mode heygen                 # hosted avatar
 ```
+
+Install the matting extra for `photo` mode: `pip install -e '.[avatar]'`, and set
+`HEYGEN_API_KEY`. Tip: generate your avatar images **on a plain green or
+transparent background** for the cleanest key (then `green_matte` is optional).
 
 > ⚠️ **Official national kits/crests are trademarked.** Using them is your
 > content-rights decision, and the avatar provider's content policy may flag

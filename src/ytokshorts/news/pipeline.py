@@ -21,6 +21,7 @@ from . import avatar as avatar_mod
 from . import background as background_mod
 from . import compose as compose_mod
 from . import feeds as feeds_mod
+from . import portrait as portrait_mod
 from . import script as script_mod
 from . import tts as tts_mod
 from .country import detect_country
@@ -181,6 +182,27 @@ def _make_presenter(
         out = clips_dir / f"presenter_{index + 1:02d}.mp4"
         avatar_mod.generate_presenter(
             audio_path, avatar_id, av,
+            width=config.reframe.width, height=config.reframe.height, out_path=out,
+        )
+        return (out, True), country
+
+    if av.mode == "photo":
+        photo = avatar_mod.resolve_photo(country, av)
+        if photo is None:
+            log.warning(
+                "No avatar image for '%s' in %s; rendering without a presenter.",
+                country or "neutral", av.photo_dir,
+            )
+            return None, country
+        green = clips_dir / f"_avatar_{country or 'neutral'}.png"
+        if not green.exists():
+            portrait_mod.to_green_screen(
+                photo, green, color=av.chroma_color or "#00FF00",
+                remove_background=av.green_matte,
+            )
+        out = clips_dir / f"presenter_{index + 1:02d}.mp4"
+        avatar_mod.generate_from_photo(
+            green, audio_path, av,
             width=config.reframe.width, height=config.reframe.height, out_path=out,
         )
         return (out, True), country

@@ -8,9 +8,12 @@ from ytokshorts.errors import ConfigError, YtokshortsError
 from ytokshorts.news.avatar import (
     avatar_id_for_country,
     build_generate_payload,
+    build_talking_photo_payload,
     parse_status,
+    resolve_photo,
     resolve_presenter_clip,
 )
+from ytokshorts.news.portrait import composite_on_color
 from ytokshorts.news.compose import build_news_ass, build_presenter_compose_command
 from ytokshorts.news.country import detect_country
 
@@ -91,6 +94,35 @@ def test_parse_status():
     done = {"data": {"status": "completed", "video_url": "https://x/v.mp4"}}
     assert parse_status(done) == ("completed", "https://x/v.mp4")
     assert parse_status({"data": {"status": "processing"}}) == ("processing", None)
+
+
+def test_build_talking_photo_payload():
+    p = build_talking_photo_payload("tp_1", "https://x/a.mp3", width=1080, height=1920,
+                                    chroma_color="#00FF00", use_avatar_iv=True)
+    char = p["video_inputs"][0]["character"]
+    assert char["type"] == "talking_photo"
+    assert char["talking_photo_id"] == "tp_1"
+    assert char["use_avatar_iv_model"] is True
+    assert p["video_inputs"][0]["voice"] == {"type": "audio", "audio_url": "https://x/a.mp3"}
+    assert p["video_inputs"][0]["background"] == {"type": "color", "value": "#00FF00"}
+
+
+def test_resolve_photo(tmp_path):
+    (tmp_path / "portugal.png").write_bytes(b"x")
+    (tmp_path / "neutral.jpg").write_bytes(b"x")
+    cfg = AvatarConfig(photo_dir=str(tmp_path))
+    assert resolve_photo("portugal", cfg).name == "portugal.png"
+    assert resolve_photo("spain", cfg).name == "neutral.jpg"   # neutral fallback
+    assert resolve_photo(None, cfg).name == "neutral.jpg"
+
+
+def test_composite_on_color_replaces_transparency():
+    from PIL import Image
+    # A 2x2 image: fully transparent -> should become solid green.
+    img = Image.new("RGBA", (2, 2), (123, 50, 200, 0))
+    out = composite_on_color(img, "#00FF00")
+    assert out.mode == "RGB"
+    assert out.getpixel((0, 0)) == (0, 255, 0)
 
 
 # --------------------------------------------------------------------------- #
