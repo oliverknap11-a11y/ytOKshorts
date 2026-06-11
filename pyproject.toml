@@ -34,11 +34,16 @@ upload = [
     "google-auth-oauthlib>=1.2.0",
     "google-auth-httplib2>=0.2.0",
 ]
+# AI-scripted news Shorts: Claude scripts + edge-tts voiceover.
+news = [
+    "anthropic>=0.40",
+    "edge-tts>=6.1",
+]
 # Optional numpy fast-path for audio energy analysis (pure-Python fallback exists).
 fast = ["numpy>=1.23"]
 dev = ["pytest>=7.0"]
 all = [
-    "ytokshorts[captions,upload,fast,dev]",
+    "ytokshorts[captions,upload,news,fast,dev]",
 ]
 
 [project.scripts]

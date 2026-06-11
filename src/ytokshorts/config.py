@@ -128,6 +128,39 @@ class UploadConfig:
 
 
 @dataclass
+class NewsConfig:
+    """The news-to-Short generator: feed → AI script → voiceover → captions."""
+
+    # A free football RSS feed. Override with any RSS 2.0 sports feed.
+    feed: str = "https://feeds.bbci.co.uk/sport/football/rss.xml"
+    # How many stories to turn into Shorts per run.
+    count: int = 3
+    # Claude model used to write the scripts (only when LLM scripting is on).
+    model: str = "claude-opus-4-8"
+    # Reasoning effort: low | medium | high | max. Low is plenty for short scripts.
+    effort: str = "low"
+    # edge-tts neural voice for the AI voiceover (free, no API key).
+    voice: str = "en-US-GuyNeural"
+    # Rough word budget per Short (~60 words ≈ 25s of speech).
+    words_target: int = 60
+    # Words shown per on-screen caption chunk (bold, word-by-word feel).
+    caption_words: int = 3
+    # Vertical gradient background (top → bottom), as #RRGGBB.
+    bg_top: str = "#0E2A1B"
+    bg_bottom: str = "#07140D"
+
+    def __post_init__(self) -> None:
+        if self.effort not in ("low", "medium", "high", "max"):
+            raise ConfigError("news.effort must be one of: low, medium, high, max")
+        if self.count < 1:
+            raise ConfigError("news.count must be >= 1")
+        if self.words_target < 10:
+            raise ConfigError("news.words_target must be >= 10")
+        if self.caption_words < 1:
+            raise ConfigError("news.caption_words must be >= 1")
+
+
+@dataclass
 class Config:
     """Top-level configuration assembled from all stages."""
 
@@ -136,6 +169,7 @@ class Config:
     caption: CaptionConfig = field(default_factory=CaptionConfig)
     reframe: ReframeConfig = field(default_factory=ReframeConfig)
     upload: UploadConfig = field(default_factory=UploadConfig)
+    news: NewsConfig = field(default_factory=NewsConfig)
     # Working directory for intermediate + final artifacts.
     work_dir: str = "work"
 
@@ -214,4 +248,5 @@ _CONFIG_CLASSES: dict[str, type] = {
     "CaptionConfig": CaptionConfig,
     "ReframeConfig": ReframeConfig,
     "UploadConfig": UploadConfig,
+    "NewsConfig": NewsConfig,
 }

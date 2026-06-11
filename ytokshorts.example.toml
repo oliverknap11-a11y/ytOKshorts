@@ -29,6 +29,18 @@ width = 1080
 height = 1920
 mode = "blur"           # "blur" (fit + blurred bars) or "crop" (zoom + center-crop)
 
+[news]
+# AI-scripted news Shorts (the `ytokshorts news` command).
+feed = "https://feeds.bbci.co.uk/sport/football/rss.xml"  # any RSS 2.0 sports feed
+count = 3
+model = "claude-opus-4-8"   # Claude model for scripts (needs ANTHROPIC_API_KEY)
+effort = "low"              # low | medium | high | max
+voice = "en-US-GuyNeural"   # edge-tts neural voice (free, no key)
+words_target = 60           # ~25s of speech
+caption_words = 3           # words per on-screen caption chunk
+bg_top = "#0E2A1B"          # vertical gradient background (top → bottom)
+bg_bottom = "#07140D"
+
 [upload]
 enabled = false
 client_secrets = "client_secret.json"   # OAuth client from Google Cloud Console

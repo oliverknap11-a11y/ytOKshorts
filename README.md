@@ -14,6 +14,12 @@ Turn long videos into publish-ready **YouTube Shorts** — automatically.
 Each stage is also a standalone subcommand, so you can run the whole thing or
 drive a single step.
 
+It can **also generate Shorts from scratch** — no source video required. The
+`news` command turns a football (or any) RSS feed into faceless news Shorts:
+fetch headlines → write a punchy script with Claude → AI voiceover (edge-tts) →
+9:16 video with a gradient background and bold word-by-word captions → optional
+schedule/upload.
+
 ---
 
 ## Install
@@ -25,6 +31,7 @@ The base install handles downloading and analysis. The heavier pieces
 pip install -e .                 # core: download + highlight + reframe
 pip install -e '.[captions]'     # + Whisper transcription
 pip install -e '.[upload]'       # + YouTube Data API upload
+pip install -e '.[news]'         # + AI news Shorts (Claude + edge-tts)
 pip install -e '.[fast]'         # + numpy (faster audio analysis)
 pip install -e '.[all]'          # everything, including dev tools
 ```
@@ -78,6 +85,36 @@ ytokshorts upload short.mp4 --title "Best moment" --publish-at 2026-06-12T09:00:
 ```
 
 Run `ytokshorts <command> --help` for the full flag list.
+
+---
+
+## AI news Shorts (no source video needed)
+
+Generate faceless news Shorts straight from an RSS feed:
+
+```bash
+pip install -e '.[news]'
+export ANTHROPIC_API_KEY=sk-ant-...        # for Claude-written scripts
+
+# 3 football Shorts: headline → script → voiceover → captioned 9:16 video
+ytokshorts news --count 3
+
+# No API key? Script straight from the headline/summary instead:
+ytokshorts news --count 3 --no-llm
+
+# Different feed + voice, then schedule one upload per day:
+ytokshorts news --feed "https://www.theguardian.com/football/rss" \
+  --voice en-GB-RyanNeural --upload --schedule-start 2026-06-12T09:00:00Z
+```
+
+Outputs `work/news/news_01.mp4 …` plus `work/news_manifest.json`. The scripts use
+Claude (`claude-opus-4-8` by default, configurable) with structured outputs; the
+voiceover uses the free Microsoft **edge-tts** (no key), and its word-boundary
+timings drive the on-screen captions.
+
+> ⚠️ Use feeds/footage you're allowed to repost. This tool writes original
+> scripts and generates its own visuals/voiceover — it does **not** scrape
+> broadcast footage or club media (which would risk copyright strikes).
 
 ---
 

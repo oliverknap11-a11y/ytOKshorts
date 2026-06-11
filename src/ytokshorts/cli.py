@@ -103,6 +103,24 @@ def _build_parser() -> argparse.ArgumentParser:
     p_cap.add_argument("--language", help="ISO 639-1 language code (default: auto-detect).")
     p_cap.set_defaults(func=_cmd_captions)
 
+    # news ------------------------------------------------------------------
+    p_news = sub.add_parser(
+        "news", help="Generate AI-scripted news Shorts (voiceover + captions)."
+    )
+    p_news.add_argument("--count", type=int, help="Number of Shorts to produce.")
+    p_news.add_argument("--feed", help="RSS feed URL (default: BBC Sport football).")
+    p_news.add_argument("--voice", help="edge-tts voice (e.g. en-US-GuyNeural).")
+    p_news.add_argument("--model", help="Claude model for scripts (default: claude-opus-4-8).")
+    p_news.add_argument("--no-llm", action="store_true", help="Script from the headline; skip Claude.")
+    p_news.add_argument("--work-dir", help="Directory for intermediate and output files.")
+    nup = p_news.add_mutually_exclusive_group()
+    nup.add_argument("--upload", action="store_true", help="Upload the Shorts to YouTube.")
+    nup.add_argument("--no-upload", action="store_true", help="Do not upload (default).")
+    p_news.add_argument("--schedule-start", help="ISO-8601 time for the first scheduled publish.")
+    p_news.add_argument("--interval-hours", type=float, help="Hours between scheduled publishes.")
+    p_news.add_argument("--privacy", choices=["private", "unlisted", "public"], help="Upload privacy.")
+    p_news.set_defaults(func=_cmd_news)
+
     # upload ----------------------------------------------------------------
     p_up = sub.add_parser("upload", help="Upload a single finished clip.")
     p_up.add_argument("file", help="Video file to upload.")
@@ -156,6 +174,42 @@ def _cmd_run(args: argparse.Namespace) -> int:
         when = f"  publish: {c['publish_at']}" if c["publish_at"] else ""
         vid = f"  id: {c['video_id']}" if c.get("video_id") else ""
         print(f"  #{c['index']:>2}  {c['file']}  ({c['duration']:.1f}s){when}{vid}")
+    return 0
+
+
+def _cmd_news(args: argparse.Namespace) -> int:
+    from .news.pipeline import run_news_pipeline
+
+    config = _load_config(args)
+    if args.work_dir:
+        config.work_dir = args.work_dir
+    if args.count:
+        config.news.count = args.count
+    if args.feed:
+        config.news.feed = args.feed
+    if args.voice:
+        config.news.voice = args.voice
+    if args.model:
+        config.news.model = args.model
+    if args.schedule_start:
+        config.upload.schedule_start = args.schedule_start
+    if args.interval_hours is not None:
+        config.upload.interval_hours = args.interval_hours
+    if args.privacy:
+        config.upload.privacy = args.privacy
+
+    do_upload = True if args.upload else (False if args.no_upload else None)
+    manifest = run_news_pipeline(
+        config,
+        count=args.count,
+        use_llm=not args.no_llm,
+        do_upload=do_upload,
+    )
+    print(f"\nDone. {len(manifest['clips'])} news Short(s):")
+    for c in manifest["clips"]:
+        when = f"  publish: {c['publish_at']}" if c["publish_at"] else ""
+        vid = f"  id: {c['video_id']}" if c.get("video_id") else ""
+        print(f"  #{c['index']:>2}  {c['file']}  ({c['duration']:.1f}s)  {c['title']}{when}{vid}")
     return 0
 
 
