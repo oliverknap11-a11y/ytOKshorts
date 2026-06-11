@@ -83,6 +83,12 @@ def run_news_pipeline(
         cues = tts_mod.synthesize(result.script, audio_path, voice=news.voice)
 
         duration = _audio_duration(audio_path, cues)
+        if not cues:
+            log.warning(
+                "TTS returned no word timings; distributing captions evenly "
+                "across the voiceover."
+            )
+            cues = tts_mod.even_cues(result.script, duration)
         captions = compose_mod.group_words_into_captions(cues, news.caption_words)
 
         # Optional AI presenter (country-specific kit), composited over the pitch.

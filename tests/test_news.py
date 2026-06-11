@@ -22,7 +22,7 @@ from ytokshorts.news.script import (
     fallback_script,
     parse_script_response,
 )
-from ytokshorts.news.tts import WordCue, boundaries_to_cues
+from ytokshorts.news.tts import WordCue, boundaries_to_cues, even_cues
 
 # --------------------------------------------------------------------------- #
 # feeds
@@ -125,6 +125,21 @@ def test_trim_title_clamps_length():
 # --------------------------------------------------------------------------- #
 # tts
 # --------------------------------------------------------------------------- #
+
+def test_even_cues_spans_duration():
+    cues = even_cues("one two three four", 8.0)
+    assert len(cues) == 4
+    assert cues[0].start == 0.0
+    assert cues[-1].end == pytest.approx(8.0, abs=0.01)   # covers the whole clip
+    # Non-overlapping, increasing.
+    for a, b in zip(cues, cues[1:]):
+        assert b.start >= a.start
+
+
+def test_even_cues_empty():
+    assert even_cues("", 5.0) == []
+    assert even_cues("hi", 0) == []
+
 
 def test_boundaries_to_cues_converts_ticks():
     # 1 second == 10,000,000 ticks.

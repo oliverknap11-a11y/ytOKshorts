@@ -41,6 +41,27 @@ def boundaries_to_cues(boundaries: list[dict]) -> list[WordCue]:
     return cues
 
 
+def even_cues(text: str, duration: float) -> list[WordCue]:
+    """Distribute the words of ``text`` evenly across ``duration`` seconds (pure).
+
+    A fallback for when the TTS engine returns no word-boundary timings, so
+    captions still appear (roughly tracking the speech) instead of nothing.
+    Each word's slice is weighted by its length so longer words last longer.
+    """
+    words = text.split()
+    if not words or duration <= 0:
+        return []
+    weights = [len(w) + 1 for w in words]
+    total = sum(weights)
+    cues: list[WordCue] = []
+    t = 0.0
+    for w, wt in zip(words, weights):
+        slice_dur = duration * wt / total
+        cues.append(WordCue(word=w, start=round(t, 3), end=round(t + slice_dur, 3)))
+        t += slice_dur
+    return cues
+
+
 def synthesize(text: str, out_path: str | Path, *, voice: str) -> list[WordCue]:
     """Synthesize ``text`` to an mp3 at ``out_path``; return word-timed cues."""
     try:
