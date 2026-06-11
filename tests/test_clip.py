@@ -30,8 +30,11 @@ def test_filtergraph_appends_ass():
 
 
 def test_escape_filter_path():
+    # POSIX paths pass through untouched.
     assert escape_filter_path("/a/b c.ass") == "/a/b c.ass"
-    assert escape_filter_path("C:\\x:y.ass") == "C\\:\\\\x\\:y.ass"
+    # Windows paths: backslashes -> forward slashes; drive-letter colon escaped.
+    assert escape_filter_path("C:\\work\\news\\x.ass") == "C\\:/work/news/x.ass"
+    assert escape_filter_path("work\\news\\x.ass") == "work/news/x.ass"
 
 
 def test_build_clip_command_structure():

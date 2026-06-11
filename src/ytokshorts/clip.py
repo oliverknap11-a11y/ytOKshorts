@@ -45,11 +45,14 @@ def escape_filter_path(path: str | Path) -> str:
     """Escape a filesystem path for use inside an ffmpeg filter argument.
 
     Inside a filtergraph, ``:`` separates options and ``'`` quotes values, so
-    both (and backslashes) must be escaped or a path with a colon/space breaks
-    the graph.
+    both must be escaped or a path with a colon/space breaks the graph.
+
+    Windows paths use backslashes, which the filtergraph parser treats as escape
+    characters and silently eats (``work\\news\\x.ass`` → ``worknewsx.ass``).
+    ffmpeg accepts forward slashes on Windows too, so we normalize to ``/`` and
+    only have to escape the drive-letter colon.
     """
-    s = str(path)
-    s = s.replace("\\", "\\\\")
+    s = str(path).replace("\\", "/")
     s = s.replace(":", "\\:")
     s = s.replace("'", "\\'")
     return s
