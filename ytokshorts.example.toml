@@ -1,0 +1,43 @@
+# ytOKshorts configuration. Copy to `ytokshorts.toml` and edit.
+# Every value shown is the built-in default — delete what you don't override.
+
+work_dir = "work"
+
+[download]
+# yt-dlp format selector. Caps at 1080p; Shorts don't need more.
+format = "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
+# cookies = "cookies.txt"   # for age-restricted / members-only sources
+
+[highlights]
+min_duration = 15.0     # shortest acceptable clip (seconds)
+max_duration = 58.0     # longest clip; must be <= 60 (Shorts limit)
+target_count = 5        # how many clips to cut from one source
+spacing = 5.0           # minimum gap between chosen clips (seconds)
+window = 0.5            # audio analysis window (seconds)
+
+[caption]
+enabled = true
+model = "base"          # tiny | base | small | medium | large-v3
+# language = "en"       # omit to auto-detect
+font = "Arial"
+font_size = 18
+position = "bottom"     # bottom | center | top
+outline = 2
+
+[reframe]
+width = 1080
+height = 1920
+mode = "blur"           # "blur" (fit + blurred bars) or "crop" (zoom + center-crop)
+
+[upload]
+enabled = false
+client_secrets = "client_secret.json"   # OAuth client from Google Cloud Console
+token = "token.json"                     # cached after first auth
+privacy = "private"                      # private | unlisted | public
+category_id = "22"                       # 22 = People & Blogs
+tags = ["shorts"]
+made_for_kids = false
+title_suffix = "#shorts"
+# Schedule: publish the first clip at this UTC time, space the rest by interval.
+# schedule_start = "2026-06-12T09:00:00Z"
+interval_hours = 24.0
