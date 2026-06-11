@@ -37,8 +37,9 @@ model = "claude-opus-4-8"   # Claude model for scripts (needs ANTHROPIC_API_KEY)
 effort = "low"              # low | medium | high | max
 voice = "en-US-GuyNeural"   # edge-tts neural voice (free, no key)
 words_target = 60           # ~25s of speech
-caption_words = 3           # words per on-screen caption chunk
-animate = true              # caption pop/fade-in animation
+caption_words = 3           # words per on-screen subtitle line
+caption_style = "stack"     # "stack" = subtitles build down the screen; "pop" = one chunk at a time
+animate = true              # caption fade-in / dim animation
 emphasize = true            # highlight numbers/scores in gold
 # background = "clips/"     # image / video / folder you own; empty = drawn pitch
 scrim = 0.4                 # darkening over image/video backgrounds (0–1)

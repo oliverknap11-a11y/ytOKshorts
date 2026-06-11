@@ -88,6 +88,7 @@ def run_news_pipeline(
                 width=config.reframe.width, height=config.reframe.height,
                 duration=duration, font=config.caption.font,
                 animate=news.animate, emphasize=news.emphasize,
+                style=news.caption_style,
             )
         )
 

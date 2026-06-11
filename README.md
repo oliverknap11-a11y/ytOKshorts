@@ -110,8 +110,13 @@ ytokshorts news --feed "https://www.theguardian.com/football/rss" \
 Outputs `work/news/news_01.mp4 …` plus `work/news_manifest.json`. The scripts use
 Claude (`claude-opus-4-8` by default, configurable) with structured outputs; the
 voiceover uses the free Microsoft **edge-tts** (no key), and its word-boundary
-timings drive the on-screen captions — which **pop/fade in** and **highlight
-numbers/scores in gold**.
+timings drive the on-screen captions.
+
+By default captions use the **`stack`** style: each spoken line fades in *under*
+the previous one (the just-spoken lines dim, the newest stays bright), so the
+subtitles build down the screen and longer scripts fill more of it — paging to a
+fresh top when they reach the bottom. Numbers/scores are highlighted in gold. Set
+`news.caption_style = "pop"` for one centered, popping chunk at a time instead.
 
 **Background:** by default it draws a stylized **football pitch** (no assets,
 no rights issues). Point `--background` at your own image, video, or a folder

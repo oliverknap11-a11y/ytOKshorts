@@ -36,14 +36,6 @@ def group_words_into_captions(cues: list[WordCue], max_words: int) -> list[Capti
     return captions
 
 
-def caption_override(animate: bool) -> str:
-    """Leading ASS override for a caption chunk: fade + scale 'pop' (pure)."""
-    if not animate:
-        return ""
-    # Fade in 90ms / out 70ms, and grow from 72% to 100% over 140ms.
-    return r"{\fad(90,70)\fscx72\fscy72\t(0,140,\fscx100\fscy100)}"
-
-
 def title_override(animate: bool) -> str:
     """Leading ASS override for the title: a gentle fade-in (pure)."""
     return r"{\fad(300,120)}" if animate else ""
@@ -52,6 +44,83 @@ def title_override(animate: bool) -> str:
 def emphasize_numbers(escaped_text: str) -> str:
     """Wrap number-like tokens (scores, money, %) in a gold colour run (pure)."""
     return _EMPH_RE.sub(lambda m: f"{_GOLD}{m.group(0)}{_WHITE}", escaped_text)
+
+
+def caption_override(animate: bool) -> str:
+    """Leading ASS override for a 'pop' caption chunk: fade + scale (pure)."""
+    if not animate:
+        return ""
+    return r"{\fad(90,70)\fscx72\fscy72\t(0,140,\fscx100\fscy100)}"
+
+
+def stack_caption_override(x: int, y: int, active_seconds: float, animate: bool) -> str:
+    """Override for a stacked subtitle line: position, fade-in, then dim after spoken.
+
+    The line fades in at ``(x, y)`` (top-anchored), stays bright while it's being
+    spoken, then dims to ~57% so the next line below it becomes the focus.
+    """
+    base = rf"\an8\pos({x},{y})"
+    if not animate:
+        return "{" + base + "}"
+    a = max(150, round(active_seconds * 1000))
+    return (
+        "{" + base
+        + r"\alpha&HFF&\t(0,120,\alpha&H00&)"   # fade in
+        + rf"\t({a},{a + 260},\alpha&H6E&)" + "}"  # dim once spoken
+    )
+
+
+def stack_dialogues(
+    captions: list[Caption],
+    *,
+    width: int,
+    height: int,
+    caption_fs: int,
+    duration: float,
+    animate: bool,
+    emphasize: bool,
+    has_title: bool,
+) -> list[str]:
+    """Lay subtitles out as an accumulating, downward-building, paged stack (pure).
+
+    Lines appear under one another as they're spoken; when the column reaches the
+    bottom it clears and the next page starts again from the top.
+    """
+    if not captions:
+        return []
+    y_top = round(height * (0.20 if has_title else 0.12))
+    y_bottom = round(height * 0.90)
+    line_h = max(1, round(caption_fs * 1.30))
+    max_lines = max(1, (y_bottom - y_top) // line_h)
+
+    out: list[str] = []
+    n = len(captions)
+    for p in range(0, n, max_lines):
+        page = captions[p : p + max_lines]
+        page_end = captions[p + max_lines].start if p + max_lines < n else duration
+        for j, c in enumerate(page):
+            y = y_top + j * line_h
+            body = emphasize_numbers(_ass_escape(c.text)) if emphasize else _ass_escape(c.text)
+            ov = stack_caption_override(width // 2, y, c.end - c.start, animate)
+            out.append(
+                f"Dialogue: 0,{format_ass_timestamp(c.start)},{format_ass_timestamp(page_end)},"
+                f"Caption,,0,0,0,,{ov}{body}"
+            )
+    return out
+
+
+def pop_dialogues(
+    captions: list[Caption], *, animate: bool, emphasize: bool
+) -> list[str]:
+    """One centered caption chunk at a time (the original 'pop' style) — pure."""
+    out: list[str] = []
+    for c in captions:
+        body = emphasize_numbers(_ass_escape(c.text)) if emphasize else _ass_escape(c.text)
+        out.append(
+            f"Dialogue: 0,{format_ass_timestamp(c.start)},{format_ass_timestamp(c.end)},"
+            f"Caption,,0,0,0,,{caption_override(animate)}{body}"
+        )
+    return out
 
 
 def build_news_ass(
@@ -64,10 +133,18 @@ def build_news_ass(
     font: str = "Arial",
     animate: bool = True,
     emphasize: bool = True,
+    style: str = "stack",
 ) -> str:
-    """Render a two-style ASS: a persistent top title + animated word captions."""
+    """Render the ASS: a persistent top title + captions.
+
+    ``style="stack"`` builds subtitles down the screen (each line stays as the
+    next appears under it); ``style="pop"`` shows one centered chunk at a time.
+    """
     title_fs = max(24, round(height * 0.032))
-    caption_fs = max(40, round(height * 0.062))
+    if style == "stack":
+        caption_fs = max(36, round(height * 0.040))
+    else:
+        caption_fs = max(40, round(height * 0.062))
     title_mv = round(height * 0.07)
     side = round(width * 0.07)
 
@@ -87,9 +164,9 @@ def build_news_ass(
         # Title: top-centered, gold, medium.
         f"Style: Title,{font},{title_fs},&H0028C8FF,&H000000FF,&H00000000,&H64000000,"
         f"1,0,0,0,100,100,0,0,1,3,0,8,{side},{side},{title_mv},1\n"
-        # Caption: center, big, bold, white with a heavy outline + drop shadow.
+        # Caption: bold white with a heavy outline + drop shadow.
         f"Style: Caption,{font},{caption_fs},&H00FFFFFF,&H000000FF,&H00000000,&HA0000000,"
-        f"1,0,0,0,100,100,0,0,1,4,2,5,{side},{side},0,1\n"
+        f"1,0,0,0,100,100,0,0,1,3,2,5,{side},{side},0,1\n"
         "\n"
         "[Events]\n"
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, "
@@ -102,14 +179,14 @@ def build_news_ass(
             f"Dialogue: 0,{format_ass_timestamp(0)},{format_ass_timestamp(duration)},"
             f"Title,,0,0,0,,{title_override(animate)}{_ass_escape(title.strip())}"
         )
-    for c in captions:
-        body = _ass_escape(c.text)
-        if emphasize:
-            body = emphasize_numbers(body)
-        lines.append(
-            f"Dialogue: 0,{format_ass_timestamp(c.start)},{format_ass_timestamp(c.end)},"
-            f"Caption,,0,0,0,,{caption_override(animate)}{body}"
+    if style == "stack":
+        lines += stack_dialogues(
+            captions, width=width, height=height, caption_fs=caption_fs,
+            duration=duration, animate=animate, emphasize=emphasize,
+            has_title=bool(title.strip()),
         )
+    else:
+        lines += pop_dialogues(captions, animate=animate, emphasize=emphasize)
     return header + "\n".join(lines) + ("\n" if lines else "")
 
 

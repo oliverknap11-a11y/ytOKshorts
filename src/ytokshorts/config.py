@@ -145,6 +145,9 @@ class NewsConfig:
     words_target: int = 60
     # Words shown per on-screen caption chunk (bold, word-by-word feel).
     caption_words: int = 3
+    # Caption layout: "stack" builds subtitles down the screen (each line stays
+    # as the next appears under it); "pop" shows one centered chunk at a time.
+    caption_style: str = "stack"
     # Background: empty = a drawn football pitch; or a path to an image/video/folder
     # you own or are licensed to use (cover-cropped to 9:16).
     background: str = ""
@@ -166,6 +169,8 @@ class NewsConfig:
             raise ConfigError("news.words_target must be >= 10")
         if self.caption_words < 1:
             raise ConfigError("news.caption_words must be >= 1")
+        if self.caption_style not in ("stack", "pop"):
+            raise ConfigError("news.caption_style must be 'stack' or 'pop'")
         if not 0.0 <= self.scrim <= 1.0:
             raise ConfigError("news.scrim must be between 0 and 1")
 

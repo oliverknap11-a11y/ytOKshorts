@@ -12,6 +12,8 @@ from ytokshorts.news.compose import (
     emphasize_numbers,
     group_words_into_captions,
     hex_to_ff_color,
+    stack_caption_override,
+    stack_dialogues,
 )
 from ytokshorts.news.feeds import NewsItem, parse_rss, strip_html
 from ytokshorts.news.script import (
@@ -246,13 +248,57 @@ def test_emphasize_numbers_leaves_plain_text():
     assert emphasize_numbers("no digits here") == "no digits here"
 
 
-def test_build_news_ass_animation_in_dialogue():
+def test_pop_style_animation_in_dialogue():
     caps = [WordCue("Bellingham", 0.0, 0.5)]
     grouped = group_words_into_captions(caps, 3)
-    ass = build_news_ass("T", grouped, width=1080, height=1920, duration=5.0, animate=True)
+    ass = build_news_ass("T", grouped, width=1080, height=1920, duration=5.0,
+                         animate=True, style="pop")
     assert "\\fad(90,70)" in ass        # caption pop
-    plain = build_news_ass("T", grouped, width=1080, height=1920, duration=5.0, animate=False)
+    plain = build_news_ass("T", grouped, width=1080, height=1920, duration=5.0,
+                           animate=False, style="pop")
     assert "\\fad(90,70)" not in plain
+
+
+def test_stack_caption_override_positions_and_dims():
+    ov = stack_caption_override(540, 600, active_seconds=0.5, animate=True)
+    assert "\\pos(540,600)" in ov
+    assert "\\an8" in ov
+    assert "\\alpha&H6E&" in ov          # dims after spoken
+    flat = stack_caption_override(540, 600, active_seconds=0.5, animate=False)
+    assert flat == "{\\an8\\pos(540,600)}"
+
+
+def test_stack_dialogues_accumulate_downward():
+    # 6 short lines, page holds plenty -> y increases per line, all end at clip end.
+    caps = [WordCue(f"w{i}", float(i), float(i) + 0.4) for i in range(6)]
+    grouped = group_words_into_captions(caps, 1)  # one word per line
+    dialogues = stack_dialogues(
+        grouped, width=1080, height=1920, caption_fs=77, duration=10.0,
+        animate=True, emphasize=False, has_title=True,
+    )
+    assert len(dialogues) == 6
+    ys = [int(d.split("\\pos(540,")[1].split(")")[0]) for d in dialogues]
+    assert ys == sorted(ys) and len(set(ys)) == 6   # strictly stacked down
+    assert all(",0:00:10.00," in d for d in dialogues)  # persist to clip end
+
+
+def test_stack_dialogues_pages_when_full():
+    # Tiny band so only ~2 lines fit per page; 5 lines -> 3 pages, y resets each page.
+    caps = [WordCue(f"w{i}", float(i), float(i) + 0.4) for i in range(5)]
+    grouped = group_words_into_captions(caps, 1)
+    dialogues = stack_dialogues(
+        grouped, width=1080, height=400, caption_fs=120, duration=9.0,
+        animate=False, emphasize=False, has_title=False,
+    )
+    ys = [int(d.split("\\pos(540,")[1].split(")")[0]) for d in dialogues]
+    # The top y appears more than once -> the column reset onto a new page.
+    assert ys.count(min(ys)) >= 2
+
+
+def test_build_news_ass_stack_is_default():
+    caps = group_words_into_captions([WordCue("hi", 0.0, 0.5)], 3)
+    ass = build_news_ass("T", caps, width=1080, height=1920, duration=5.0)
+    assert "\\pos(" in ass and "\\an8" in ass   # stacked layout by default
 
 
 # --------------------------------------------------------------------------- #
@@ -304,3 +350,11 @@ def test_news_config_validation():
         NewsConfig(effort="turbo")
     with pytest.raises(ConfigError, match="news.count"):
         NewsConfig(count=0)
+    with pytest.raises(ConfigError, match="news.caption_style"):
+        NewsConfig(caption_style="scroll")
+    with pytest.raises(ConfigError, match="news.scrim"):
+        NewsConfig(scrim=2.0)
+
+
+def test_news_config_caption_style_default():
+    assert NewsConfig().caption_style == "stack"
