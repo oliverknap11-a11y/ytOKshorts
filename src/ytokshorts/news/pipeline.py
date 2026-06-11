@@ -17,11 +17,13 @@ from .. import upload as upload_mod
 from ..config import Config
 from ..errors import MissingDependencyError
 from ..external import require_tool, run
+from . import avatar as avatar_mod
 from . import background as background_mod
 from . import compose as compose_mod
 from . import feeds as feeds_mod
 from . import script as script_mod
 from . import tts as tts_mod
+from .country import detect_country
 
 log = logging.getLogger("ytokshorts")
 
@@ -38,6 +40,7 @@ class NewsClip:
     duration: float
     publish_at: str | None = None
     video_id: str | None = None
+    country: str = ""
 
 
 def run_news_pipeline(
@@ -81,6 +84,11 @@ def run_news_pipeline(
 
         duration = _audio_duration(audio_path, cues)
         captions = compose_mod.group_words_into_captions(cues, news.caption_words)
+
+        # Optional AI presenter (country-specific kit), composited over the pitch.
+        presenter, country = _make_presenter(config, item, audio_path, clips_dir, i)
+        band = config.avatar.subtitles if presenter else "full"
+
         ass_path = clips_dir / f"news_{i + 1:02d}.ass"
         ass_path.write_text(
             compose_mod.build_news_ass(
@@ -88,7 +96,7 @@ def run_news_pipeline(
                 width=config.reframe.width, height=config.reframe.height,
                 duration=duration, font=config.caption.font,
                 animate=news.animate, emphasize=news.emphasize,
-                style=news.caption_style,
+                style=news.caption_style, band=band,
             )
         )
 
@@ -98,12 +106,26 @@ def run_news_pipeline(
         )
         out_path = clips_dir / f"news_{i + 1:02d}.mp4"
         log.info("  Rendering -> %s", out_path.name)
-        cmd = compose_mod.build_compose_command(
-            audio_path, ass_path, out_path,
-            width=config.reframe.width, height=config.reframe.height,
-            duration=duration, bg_top=news.bg_top, bg_bottom=news.bg_bottom,
-            background=background, scrim=news.scrim,
-        )
+        if presenter:
+            pres_path, has_audio = presenter
+            av = config.avatar
+            cmd = compose_mod.build_presenter_compose_command(
+                ass_path, pres_path, out_path,
+                width=config.reframe.width, height=config.reframe.height,
+                duration=duration, bg_top=news.bg_top, bg_bottom=news.bg_bottom,
+                background=background, scrim=news.scrim,
+                presenter_has_audio=has_audio,
+                audio_path=None if has_audio else audio_path,
+                chroma_color=av.chroma_color, chroma_similarity=av.chroma_similarity,
+                chroma_blend=av.chroma_blend, scale=av.scale, position=av.position,
+            )
+        else:
+            cmd = compose_mod.build_compose_command(
+                audio_path, ass_path, out_path,
+                width=config.reframe.width, height=config.reframe.height,
+                duration=duration, bg_top=news.bg_top, bg_bottom=news.bg_bottom,
+                background=background, scrim=news.scrim,
+            )
         run(cmd)
 
         results.append(
@@ -115,6 +137,7 @@ def run_news_pipeline(
                 file=str(out_path),
                 duration=round(duration, 3),
                 publish_at=schedule[i],
+                country=country or "",
             )
         )
 
@@ -132,6 +155,39 @@ def run_news_pipeline(
     manifest_path.write_text(json.dumps(manifest, indent=2))
     log.info("Wrote manifest with %d clip(s) -> %s", len(results), manifest_path)
     return manifest
+
+
+def _make_presenter(
+    config: Config, item, audio_path: Path, clips_dir: Path, index: int
+) -> tuple[tuple[Path, bool] | None, str | None]:
+    """Return ``((presenter_path, has_audio), country)`` or ``(None, country)``.
+
+    ``has_audio`` is True for HeyGen output (lip-synced to our audio, audio
+    baked in) and False for user-supplied loop clips (we keep our voiceover).
+    """
+    av = config.avatar
+    if not av.enabled:
+        return None, None
+
+    country = detect_country(f"{item.title} {item.summary}")
+    if av.mode == "heygen":
+        avatar_id = avatar_mod.avatar_id_for_country(country, av)
+        out = clips_dir / f"presenter_{index + 1:02d}.mp4"
+        avatar_mod.generate_presenter(
+            audio_path, avatar_id, av,
+            width=config.reframe.width, height=config.reframe.height, out_path=out,
+        )
+        return (out, True), country
+
+    # clips mode: overlay a per-country loop you supplied (our voiceover is kept).
+    clip = avatar_mod.resolve_presenter_clip(country, av)
+    if clip is None:
+        log.warning(
+            "No presenter clip for '%s' in %s; rendering without a presenter.",
+            country or "neutral", av.clips_dir,
+        )
+        return None, country
+    return (clip, False), country
 
 
 def _default_background(config: Config, clips_dir: Path) -> tuple[str, str] | None:

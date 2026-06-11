@@ -79,17 +79,19 @@ def stack_dialogues(
     duration: float,
     animate: bool,
     emphasize: bool,
-    has_title: bool,
+    y_top_frac: float = 0.20,
+    y_bottom_frac: float = 0.90,
 ) -> list[str]:
     """Lay subtitles out as an accumulating, downward-building, paged stack (pure).
 
-    Lines appear under one another as they're spoken; when the column reaches the
-    bottom it clears and the next page starts again from the top.
+    Lines appear under one another as they're spoken within the vertical band
+    ``[y_top_frac, y_bottom_frac]``; when the column reaches the bottom of the
+    band it clears and the next page starts again from the top.
     """
     if not captions:
         return []
-    y_top = round(height * (0.20 if has_title else 0.12))
-    y_bottom = round(height * 0.90)
+    y_top = round(height * y_top_frac)
+    y_bottom = round(height * y_bottom_frac)
     line_h = max(1, round(caption_fs * 1.30))
     max_lines = max(1, (y_bottom - y_top) // line_h)
 
@@ -134,11 +136,15 @@ def build_news_ass(
     animate: bool = True,
     emphasize: bool = True,
     style: str = "stack",
+    band: str = "full",
 ) -> str:
     """Render the ASS: a persistent top title + captions.
 
     ``style="stack"`` builds subtitles down the screen (each line stays as the
     next appears under it); ``style="pop"`` shows one centered chunk at a time.
+    ``band`` constrains the stack vertically: ``"full"`` uses most of the frame,
+    ``"top"`` keeps subtitles in the upper third (above a presenter's head),
+    ``"center"`` keeps them mid-frame.
     """
     title_fs = max(24, round(height * 0.032))
     if style == "stack":
@@ -180,10 +186,17 @@ def build_news_ass(
             f"Title,,0,0,0,,{title_override(animate)}{_ass_escape(title.strip())}"
         )
     if style == "stack":
+        has_title = bool(title.strip())
+        if band == "top":
+            y_top_frac, y_bottom_frac = 0.13, 0.46
+        elif band == "center":
+            y_top_frac, y_bottom_frac = 0.30, 0.66
+        else:  # full
+            y_top_frac, y_bottom_frac = (0.20 if has_title else 0.12), 0.90
         lines += stack_dialogues(
             captions, width=width, height=height, caption_fs=caption_fs,
             duration=duration, animate=animate, emphasize=emphasize,
-            has_title=bool(title.strip()),
+            y_top_frac=y_top_frac, y_bottom_frac=y_bottom_frac,
         )
     else:
         lines += pop_dialogues(captions, animate=animate, emphasize=emphasize)
@@ -247,6 +260,92 @@ def build_compose_command(
         "-filter_complex", filtergraph,
         "-map", "[v]",
         "-map", "1:a",
+        "-t", f"{duration:.3f}",
+        "-r", str(fps),
+        "-c:v", "libx264",
+        "-preset", preset,
+        "-crf", str(crf),
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        "-b:a", "128k",
+        "-movflags", "+faststart",
+        str(output_path),
+    ]
+
+
+def build_presenter_compose_command(
+    ass_path: str | Path,
+    presenter_path: str | Path,
+    output_path: str | Path,
+    *,
+    width: int,
+    height: int,
+    duration: float,
+    bg_top: str,
+    bg_bottom: str,
+    background: tuple[str, str] | None = None,
+    scrim: float = 0.4,
+    presenter_has_audio: bool = True,
+    audio_path: str | Path | None = None,
+    chroma_color: str = "#00FF00",
+    chroma_similarity: float = 0.18,
+    chroma_blend: float = 0.10,
+    scale: float = 0.62,
+    position: str = "bottom",
+    fps: int = 30,
+    ffmpeg: str = "ffmpeg",
+    crf: int = 20,
+    preset: str = "veryfast",
+) -> list[str]:
+    """Composite a presenter video over the background, with captions on top.
+
+    The presenter is chroma-keyed (green screen) and overlaid; audio comes from
+    the presenter clip itself (``presenter_has_audio``, e.g. HeyGen output) or
+    from a separate ``audio_path`` (looped presenter clips).
+    """
+    if duration <= 0:
+        raise ValueError("duration must be > 0")
+
+    bg_args, bg_prep = _background_input_and_filter(
+        background, width, height, duration, bg_top, bg_bottom, scrim, fps
+    )
+    # Input order: [0]=background, [1]=presenter, [2]=audio (only when separate).
+    if presenter_has_audio:
+        presenter_args = ["-i", str(presenter_path)]
+        audio_map = "1:a"
+    else:
+        presenter_args = ["-stream_loop", "-1", "-i", str(presenter_path)]
+        if audio_path is None:
+            raise ValueError("audio_path is required when presenter_has_audio is False")
+        presenter_args += ["-i", str(audio_path)]
+        audio_map = "2:a"
+
+    ph = round(height * scale)
+    y = (height - ph) if position == "bottom" else (height - ph) // 2
+    key = ""
+    if chroma_color:
+        key = (
+            f"chromakey={hex_to_ff_color(chroma_color)}:{chroma_similarity:.3f}:"
+            f"{chroma_blend:.3f},"
+        )
+    presenter_chain = f"[1:v]{key}scale=-1:{ph}[pres]"
+    overlay = f"[bgf][pres]overlay=(W-w)/2:{y}[comp]"
+    filtergraph = (
+        f"{bg_prep.removesuffix('[bg]')}[bgf];"   # reuse bg cover/scrim, relabel
+        f"{presenter_chain};"
+        f"{overlay};"
+        f"[comp]ass={escape_filter_path(ass_path)},format=yuv420p[v]"
+    )
+
+    return [
+        ffmpeg,
+        "-v", "error",
+        "-y",
+        *bg_args,
+        *presenter_args,
+        "-filter_complex", filtergraph,
+        "-map", "[v]",
+        "-map", audio_map,
         "-t", f"{duration:.3f}",
         "-r", str(fps),
         "-c:v", "libx264",

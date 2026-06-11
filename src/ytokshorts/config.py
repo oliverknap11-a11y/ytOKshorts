@@ -176,6 +176,44 @@ class NewsConfig:
 
 
 @dataclass
+class AvatarConfig:
+    """An AI presenter composited in front of the pitch (news Shorts only).
+
+    Two engines: ``clips`` overlays per-country presenter videos you supply
+    (free; you render the lip-synced looks yourself), and ``heygen`` generates a
+    lip-synced talking head per story via the HeyGen API (paid, needs a key).
+    """
+
+    enabled: bool = False
+    mode: str = "clips"                 # "clips" | "heygen"
+    # clips mode: a folder with <country>.mp4 (e.g. england.mp4) + neutral.mp4
+    clips_dir: str = "presenters"
+    # heygen mode: env var holding the API key, and country -> avatar_id map.
+    api_key_env: str = "HEYGEN_API_KEY"
+    avatar_map: dict = field(default_factory=dict)   # country -> HeyGen avatar_id
+    neutral_avatar: str = ""                          # avatar_id for neutral / your-logo kit
+    # Green-screen key colour to drop out of the presenter ("" = alpha video, no key).
+    chroma_color: str = "#00FF00"
+    chroma_similarity: float = 0.18
+    chroma_blend: float = 0.10
+    # Presenter size (fraction of frame height) and placement.
+    scale: float = 0.62
+    position: str = "bottom"            # "bottom" | "center"
+    # Where subtitles sit when a presenter is present (above her head by default).
+    subtitles: str = "top"              # "top" | "center" | "full"
+
+    def __post_init__(self) -> None:
+        if self.mode not in ("clips", "heygen"):
+            raise ConfigError("avatar.mode must be 'clips' or 'heygen'")
+        if self.position not in ("bottom", "center"):
+            raise ConfigError("avatar.position must be 'bottom' or 'center'")
+        if self.subtitles not in ("top", "center", "full"):
+            raise ConfigError("avatar.subtitles must be 'top', 'center', or 'full'")
+        if not 0.1 < self.scale <= 1.0:
+            raise ConfigError("avatar.scale must be in (0.1, 1.0]")
+
+
+@dataclass
 class Config:
     """Top-level configuration assembled from all stages."""
 
@@ -185,6 +223,7 @@ class Config:
     reframe: ReframeConfig = field(default_factory=ReframeConfig)
     upload: UploadConfig = field(default_factory=UploadConfig)
     news: NewsConfig = field(default_factory=NewsConfig)
+    avatar: AvatarConfig = field(default_factory=AvatarConfig)
     # Working directory for intermediate + final artifacts.
     work_dir: str = "work"
 
@@ -264,4 +303,5 @@ _CONFIG_CLASSES: dict[str, type] = {
     "ReframeConfig": ReframeConfig,
     "UploadConfig": UploadConfig,
     "NewsConfig": NewsConfig,
+    "AvatarConfig": AvatarConfig,
 }

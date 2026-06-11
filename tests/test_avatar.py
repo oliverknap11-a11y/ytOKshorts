@@ -1,0 +1,169 @@
+"""Tests for the AI-presenter pieces: country detection, kit selection,
+HeyGen request shaping, and presenter compositing (all pure)."""
+
+import pytest
+
+from ytokshorts.config import AvatarConfig
+from ytokshorts.errors import ConfigError, YtokshortsError
+from ytokshorts.news.avatar import (
+    avatar_id_for_country,
+    build_generate_payload,
+    parse_status,
+    resolve_presenter_clip,
+)
+from ytokshorts.news.compose import build_news_ass, build_presenter_compose_command
+from ytokshorts.news.country import detect_country
+
+# --------------------------------------------------------------------------- #
+# country detection
+# --------------------------------------------------------------------------- #
+
+def test_detect_country_by_nation_and_demonym():
+    assert detect_country("England squad named for the friendly") == "england"
+    assert detect_country("French stars shine in Paris") == "france"
+    assert detect_country("Brazilian wonderkid signs deal") == "brazil"
+
+
+def test_detect_country_multiword_priority():
+    # "south korea" must win over a bare "korea" match.
+    assert detect_country("South Korea face Japan in qualifier") == "south-korea"
+
+
+def test_detect_country_none_for_neutral():
+    assert detect_country("Club transfer rumour heats up") is None
+    assert detect_country("") is None
+
+
+def test_detect_country_word_boundary():
+    # "usa" should not match inside another word like "usage".
+    assert detect_country("Heavy usage of the bench") is None
+
+
+# --------------------------------------------------------------------------- #
+# kit / avatar selection
+# --------------------------------------------------------------------------- #
+
+def test_avatar_id_for_country_map_then_neutral():
+    cfg = AvatarConfig(avatar_map={"england": "av_eng"}, neutral_avatar="av_logo")
+    assert avatar_id_for_country("england", cfg) == "av_eng"
+    assert avatar_id_for_country("france", cfg) == "av_logo"   # falls back to neutral
+    assert avatar_id_for_country(None, cfg) == "av_logo"
+
+
+def test_avatar_id_for_country_requires_some_avatar():
+    with pytest.raises(YtokshortsError):
+        avatar_id_for_country("england", AvatarConfig())
+
+
+def test_resolve_presenter_clip(tmp_path):
+    (tmp_path / "england.mp4").write_bytes(b"x")
+    (tmp_path / "neutral.mp4").write_bytes(b"x")
+    cfg = AvatarConfig(clips_dir=str(tmp_path))
+    assert resolve_presenter_clip("england", cfg).name == "england.mp4"
+    assert resolve_presenter_clip("france", cfg).name == "neutral.mp4"   # fallback
+    assert resolve_presenter_clip(None, cfg).name == "neutral.mp4"
+
+
+def test_resolve_presenter_clip_missing(tmp_path):
+    assert resolve_presenter_clip("england", AvatarConfig(clips_dir=str(tmp_path))) is None
+
+
+# --------------------------------------------------------------------------- #
+# HeyGen request/response shaping
+# --------------------------------------------------------------------------- #
+
+def test_build_generate_payload_audio_and_green_bg():
+    p = build_generate_payload("av_1", "https://x/a.mp3", width=1080, height=1920,
+                               chroma_color="#00FF00")
+    vi = p["video_inputs"][0]
+    assert vi["character"]["avatar_id"] == "av_1"
+    assert vi["voice"] == {"type": "audio", "audio_url": "https://x/a.mp3"}
+    assert vi["background"] == {"type": "color", "value": "#00FF00"}
+    assert p["dimension"] == {"width": 1080, "height": 1920}
+
+
+def test_build_generate_payload_transparent_when_no_chroma():
+    p = build_generate_payload("av_1", "u", width=1080, height=1920, chroma_color="")
+    assert p["video_inputs"][0]["background"] == {"type": "transparent"}
+
+
+def test_parse_status():
+    done = {"data": {"status": "completed", "video_url": "https://x/v.mp4"}}
+    assert parse_status(done) == ("completed", "https://x/v.mp4")
+    assert parse_status({"data": {"status": "processing"}}) == ("processing", None)
+
+
+# --------------------------------------------------------------------------- #
+# presenter compositing command
+# --------------------------------------------------------------------------- #
+
+def test_presenter_compose_heygen_uses_clip_audio():
+    cmd = build_presenter_compose_command(
+        "caps.ass", "pres.mp4", "out.mp4",
+        width=1080, height=1920, duration=20.0,
+        bg_top="#1B6B34", bg_bottom="#0A2A14",
+        background=("image", "pitch.png"),
+        presenter_has_audio=True,
+    )
+    joined = " ".join(cmd)
+    assert "chromakey=0x00FF00" in joined
+    assert "[bgf][pres]overlay=" in joined
+    assert "ass=caps.ass" in joined
+    # presenter is input 1; its audio is mapped (no separate audio input).
+    assert "-map" in cmd and "1:a" in cmd
+    assert cmd[-1] == "out.mp4"
+
+
+def test_presenter_compose_clips_loops_and_uses_voiceover():
+    cmd = build_presenter_compose_command(
+        "caps.ass", "loop.mp4", "out.mp4",
+        width=1080, height=1920, duration=20.0,
+        bg_top="#000000", bg_bottom="#111111",
+        presenter_has_audio=False, audio_path="voice.mp3",
+    )
+    assert "-stream_loop" in cmd
+    assert "voice.mp3" in " ".join(cmd)
+    assert "2:a" in cmd          # audio is the 3rd input
+
+
+def test_presenter_compose_requires_audio_when_no_clip_audio():
+    with pytest.raises(ValueError):
+        build_presenter_compose_command(
+            "c.ass", "p.mp4", "o.mp4",
+            width=1080, height=1920, duration=20.0,
+            bg_top="#000000", bg_bottom="#111111",
+            presenter_has_audio=False, audio_path=None,
+        )
+
+
+# --------------------------------------------------------------------------- #
+# subtitle band (above the presenter's head)
+# --------------------------------------------------------------------------- #
+
+def test_top_band_keeps_subtitles_in_upper_frame():
+    from ytokshorts.news.compose import group_words_into_captions
+    from ytokshorts.news.tts import WordCue
+
+    caps = group_words_into_captions([WordCue(f"w{i}", float(i), float(i) + 0.4) for i in range(4)], 1)
+    ass = build_news_ass("T", caps, width=1080, height=1920, duration=10.0, band="top")
+    ys = [int(line.split("\\pos(540,")[1].split(")")[0])
+          for line in ass.splitlines() if "\\pos(540," in line]
+    assert ys and max(ys) < round(1920 * 0.46)   # all subtitles in the top band
+
+
+# --------------------------------------------------------------------------- #
+# config validation
+# --------------------------------------------------------------------------- #
+
+def test_avatar_config_validation():
+    with pytest.raises(ConfigError, match="avatar.mode"):
+        AvatarConfig(mode="hologram")
+    with pytest.raises(ConfigError, match="avatar.position"):
+        AvatarConfig(position="left")
+    with pytest.raises(ConfigError, match="avatar.scale"):
+        AvatarConfig(scale=0)
+
+
+def test_avatar_config_defaults_disabled():
+    assert AvatarConfig().enabled is False
+    assert AvatarConfig().mode == "clips"

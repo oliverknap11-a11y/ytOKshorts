@@ -46,6 +46,22 @@ scrim = 0.4                 # darkening over image/video backgrounds (0–1)
 bg_top = "#1B6B34"          # pitch / gradient colours (top → bottom)
 bg_bottom = "#0A2A14"
 
+[avatar]
+# Optional AI presenter composited in front of the pitch (news Shorts).
+enabled = false
+mode = "clips"            # "clips" = overlay per-country clips you supply; "heygen" = generate via API
+clips_dir = "presenters"  # clips mode: <country>.mp4 (e.g. england.mp4) + neutral.mp4
+chroma_color = "#00FF00"  # green-screen colour to key out ("" for alpha video)
+scale = 0.62              # presenter height as a fraction of the frame
+position = "bottom"       # "bottom" | "center"
+subtitles = "top"         # keep subtitles above her head: "top" | "center" | "full"
+# --- heygen mode only ---
+api_key_env = "HEYGEN_API_KEY"
+neutral_avatar = ""       # HeyGen avatar_id for neutral / your-logo kit
+[avatar.avatar_map]       # country -> HeyGen avatar_id (one look per national kit)
+# england = "avatar_id_here"
+# france  = "avatar_id_here"
+
 [upload]
 enabled = false
 client_secrets = "client_secret.json"   # OAuth client from Google Cloud Console

@@ -274,7 +274,7 @@ def test_stack_dialogues_accumulate_downward():
     grouped = group_words_into_captions(caps, 1)  # one word per line
     dialogues = stack_dialogues(
         grouped, width=1080, height=1920, caption_fs=77, duration=10.0,
-        animate=True, emphasize=False, has_title=True,
+        animate=True, emphasize=False, y_top_frac=0.20, y_bottom_frac=0.90,
     )
     assert len(dialogues) == 6
     ys = [int(d.split("\\pos(540,")[1].split(")")[0]) for d in dialogues]
@@ -288,7 +288,7 @@ def test_stack_dialogues_pages_when_full():
     grouped = group_words_into_captions(caps, 1)
     dialogues = stack_dialogues(
         grouped, width=1080, height=400, caption_fs=120, duration=9.0,
-        animate=False, emphasize=False, has_title=False,
+        animate=False, emphasize=False, y_top_frac=0.12, y_bottom_frac=0.90,
     )
     ys = [int(d.split("\\pos(540,")[1].split(")")[0]) for d in dialogues]
     # The top y appears more than once -> the column reset onto a new page.

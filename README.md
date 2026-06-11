@@ -132,6 +132,34 @@ ytokshorts news --count 3 --background stadium.jpg      # a single image
 > scripts and generates its own visuals/voiceover — it does **not** scrape
 > broadcast footage or club media (which would risk copyright strikes).
 
+### Optional: an AI presenter (country kit) in front of the pitch
+
+Add a talking presenter composited over the pitch, with subtitles kept above her
+head and a kit chosen from the country the story is about (neutral stories use a
+your-logo kit). The country is detected from the headline; the presenter is
+chroma-keyed (green screen) onto the pitch.
+
+Two engines (`avatar.mode`):
+
+- **`clips`** (free) — you supply per-country presenter clips in a folder
+  (`presenters/england.mp4`, `presenters/neutral.mp4`, …); they're overlaid and
+  your edge-tts voiceover is kept. Render the looks once however you like.
+- **`heygen`** (paid) — generates a lip-synced talking head per story via the
+  [HeyGen API](https://www.heygen.com/api-pricing) (≈ $1/min, `x-api-key`),
+  lip-synced to the edge-tts audio. Set `HEYGEN_API_KEY`, create one avatar look
+  per national kit in HeyGen, and map `country → avatar_id` under
+  `[avatar.avatar_map]`.
+
+```bash
+ytokshorts news --count 3 --avatar --presenters ./presenters   # clips mode
+ytokshorts news --count 3 --avatar --avatar-mode heygen          # HeyGen mode
+```
+
+> ⚠️ **Official national kits/crests are trademarked.** Using them is your
+> content-rights decision, and the avatar provider's content policy may flag
+> third-party logos. The safe alternative is a generic kit in the nation's
+> colours, or your own-logo kit for every story.
+
 ---
 
 ## Configuration
