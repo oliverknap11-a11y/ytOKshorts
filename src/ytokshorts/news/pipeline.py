@@ -15,7 +15,9 @@ from pathlib import Path
 from .. import media as media_mod
 from .. import upload as upload_mod
 from ..config import Config
+from ..errors import MissingDependencyError
 from ..external import require_tool, run
+from . import background as background_mod
 from . import compose as compose_mod
 from . import feeds as feeds_mod
 from . import script as script_mod
@@ -65,6 +67,9 @@ def run_news_pipeline(
         config.upload.schedule_start, config.upload.interval_hours, len(items)
     )
 
+    # Background: a generated football pitch by default; user media if configured.
+    default_bg = _default_background(config, clips_dir)
+
     results: list[NewsClip] = []
     for i, item in enumerate(items):
         log.info("Story %d/%d: %s", i + 1, len(items), item.title)
@@ -82,15 +87,21 @@ def run_news_pipeline(
                 result.title, captions,
                 width=config.reframe.width, height=config.reframe.height,
                 duration=duration, font=config.caption.font,
+                animate=news.animate, emphasize=news.emphasize,
             )
         )
 
+        background = (
+            background_mod.resolve_background(news.background, i)
+            if news.background else default_bg
+        )
         out_path = clips_dir / f"news_{i + 1:02d}.mp4"
         log.info("  Rendering -> %s", out_path.name)
         cmd = compose_mod.build_compose_command(
             audio_path, ass_path, out_path,
             width=config.reframe.width, height=config.reframe.height,
             duration=duration, bg_top=news.bg_top, bg_bottom=news.bg_bottom,
+            background=background, scrim=news.scrim,
         )
         run(cmd)
 
@@ -120,6 +131,21 @@ def run_news_pipeline(
     manifest_path.write_text(json.dumps(manifest, indent=2))
     log.info("Wrote manifest with %d clip(s) -> %s", len(results), manifest_path)
     return manifest
+
+
+def _default_background(config: Config, clips_dir: Path) -> tuple[str, str] | None:
+    """Render the football-pitch background once; None falls back to a gradient."""
+    pitch = clips_dir / "_pitch.png"
+    if not pitch.exists():
+        try:
+            background_mod.render_pitch(
+                config.reframe.width, config.reframe.height, pitch,
+                top=config.news.bg_top, bottom=config.news.bg_bottom,
+            )
+        except MissingDependencyError as exc:
+            log.warning("%s — using a plain gradient background instead.", exc)
+            return None
+    return ("image", str(pitch))
 
 
 def _audio_duration(audio_path: Path, cues: list[tts_mod.WordCue]) -> float:

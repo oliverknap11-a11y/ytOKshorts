@@ -111,6 +111,10 @@ def _build_parser() -> argparse.ArgumentParser:
     p_news.add_argument("--feed", help="RSS feed URL (default: BBC Sport football).")
     p_news.add_argument("--voice", help="edge-tts voice (e.g. en-US-GuyNeural).")
     p_news.add_argument("--model", help="Claude model for scripts (default: claude-opus-4-8).")
+    p_news.add_argument(
+        "--background",
+        help="Background image/video/folder (default: a drawn football pitch).",
+    )
     p_news.add_argument("--no-llm", action="store_true", help="Script from the headline; skip Claude.")
     p_news.add_argument("--work-dir", help="Directory for intermediate and output files.")
     nup = p_news.add_mutually_exclusive_group()
@@ -191,6 +195,8 @@ def _cmd_news(args: argparse.Namespace) -> int:
         config.news.voice = args.voice
     if args.model:
         config.news.model = args.model
+    if args.background:
+        config.news.background = args.background
     if args.schedule_start:
         config.upload.schedule_start = args.schedule_start
     if args.interval_hours is not None:

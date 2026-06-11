@@ -38,8 +38,12 @@ effort = "low"              # low | medium | high | max
 voice = "en-US-GuyNeural"   # edge-tts neural voice (free, no key)
 words_target = 60           # ~25s of speech
 caption_words = 3           # words per on-screen caption chunk
-bg_top = "#0E2A1B"          # vertical gradient background (top → bottom)
-bg_bottom = "#07140D"
+animate = true              # caption pop/fade-in animation
+emphasize = true            # highlight numbers/scores in gold
+# background = "clips/"     # image / video / folder you own; empty = drawn pitch
+scrim = 0.4                 # darkening over image/video backgrounds (0–1)
+bg_top = "#1B6B34"          # pitch / gradient colours (top → bottom)
+bg_bottom = "#0A2A14"
 
 [upload]
 enabled = false

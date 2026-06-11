@@ -4,9 +4,12 @@ import pytest
 
 from ytokshorts.config import NewsConfig
 from ytokshorts.errors import ConfigError, YtokshortsError
+from ytokshorts.news.background import classify, resolve_background
 from ytokshorts.news.compose import (
     build_compose_command,
     build_news_ass,
+    caption_override,
+    emphasize_numbers,
     group_words_into_captions,
     hex_to_ff_color,
 )
@@ -173,7 +176,7 @@ def test_build_news_ass_has_both_styles():
     assert "Dialogue: 0," in ass
 
 
-def test_build_compose_command_structure():
+def test_build_compose_command_gradient_default():
     cmd = build_compose_command(
         "voice.mp3", "caps.ass", "out.mp4",
         width=1080, height=1920, duration=20.0,
@@ -189,6 +192,30 @@ def test_build_compose_command_structure():
     assert "-t" in cmd and cmd[cmd.index("-t") + 1] == "20.000"
 
 
+def test_build_compose_command_image_background_has_loop_and_scrim():
+    cmd = build_compose_command(
+        "voice.mp3", "caps.ass", "out.mp4",
+        width=1080, height=1920, duration=20.0,
+        bg_top="#000000", bg_bottom="#111111",
+        background=("image", "pitch.png"), scrim=0.4,
+    )
+    joined = " ".join(cmd)
+    assert "-loop" in cmd and "pitch.png" in joined
+    assert "drawbox" in joined and "black@0.40" in joined
+    assert "gradients" not in joined  # not the fallback
+
+
+def test_build_compose_command_video_background_stream_loops():
+    cmd = build_compose_command(
+        "voice.mp3", "caps.ass", "out.mp4",
+        width=1080, height=1920, duration=20.0,
+        bg_top="#000000", bg_bottom="#111111",
+        background=("video", "broll.mp4"),
+    )
+    assert "-stream_loop" in cmd
+    assert "broll.mp4" in " ".join(cmd)
+
+
 def test_build_compose_command_rejects_zero_duration():
     with pytest.raises(ValueError):
         build_compose_command(
@@ -196,6 +223,69 @@ def test_build_compose_command_rejects_zero_duration():
             width=1080, height=1920, duration=0,
             bg_top="#000000", bg_bottom="#111111",
         )
+
+
+# --------------------------------------------------------------------------- #
+# captions: animation + emphasis
+# --------------------------------------------------------------------------- #
+
+def test_caption_override_animates_or_not():
+    assert caption_override(False) == ""
+    anim = caption_override(True)
+    assert "\\fad" in anim and "\\t(" in anim
+
+
+def test_emphasize_numbers_wraps_scores_and_money():
+    out = emphasize_numbers("won 2-1 for £50m")
+    assert "2-1" in out and "£50m" in out
+    assert out.count("\\c&H28C8FF&") == 2   # two numeric tokens highlighted
+    assert "\\c&HFFFFFF&" in out            # reset back to white
+
+
+def test_emphasize_numbers_leaves_plain_text():
+    assert emphasize_numbers("no digits here") == "no digits here"
+
+
+def test_build_news_ass_animation_in_dialogue():
+    caps = [WordCue("Bellingham", 0.0, 0.5)]
+    grouped = group_words_into_captions(caps, 3)
+    ass = build_news_ass("T", grouped, width=1080, height=1920, duration=5.0, animate=True)
+    assert "\\fad(90,70)" in ass        # caption pop
+    plain = build_news_ass("T", grouped, width=1080, height=1920, duration=5.0, animate=False)
+    assert "\\fad(90,70)" not in plain
+
+
+# --------------------------------------------------------------------------- #
+# background resolution
+# --------------------------------------------------------------------------- #
+
+def test_classify_by_extension():
+    assert classify("a.png") == "image"
+    assert classify("b.MP4") == "video"
+    assert classify("c.txt") is None
+
+
+def test_resolve_background_file(tmp_path):
+    f = tmp_path / "bg.jpg"
+    f.write_bytes(b"x")
+    assert resolve_background(str(f), 0) == ("image", str(f))
+
+
+def test_resolve_background_folder_cycles(tmp_path):
+    (tmp_path / "a.png").write_bytes(b"x")
+    (tmp_path / "b.mp4").write_bytes(b"x")
+    (tmp_path / "notes.txt").write_bytes(b"x")  # ignored
+    k0, p0 = resolve_background(str(tmp_path), 0)
+    k1, p1 = resolve_background(str(tmp_path), 1)
+    k2, p2 = resolve_background(str(tmp_path), 2)  # wraps back to index 0
+    assert {p0, p1} == {str(tmp_path / "a.png"), str(tmp_path / "b.mp4")}
+    assert p2 == p0
+
+
+def test_resolve_background_missing_raises():
+    from ytokshorts.errors import YtokshortsError
+    with pytest.raises(YtokshortsError):
+        resolve_background("/nope/missing.png", 0)
 
 
 # --------------------------------------------------------------------------- #

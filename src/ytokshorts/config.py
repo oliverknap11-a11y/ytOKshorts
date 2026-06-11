@@ -145,9 +145,17 @@ class NewsConfig:
     words_target: int = 60
     # Words shown per on-screen caption chunk (bold, word-by-word feel).
     caption_words: int = 3
-    # Vertical gradient background (top → bottom), as #RRGGBB.
-    bg_top: str = "#0E2A1B"
-    bg_bottom: str = "#07140D"
+    # Background: empty = a drawn football pitch; or a path to an image/video/folder
+    # you own or are licensed to use (cover-cropped to 9:16).
+    background: str = ""
+    # Darkening applied over image/video backgrounds (0–1) so captions stay legible.
+    scrim: float = 0.4
+    # Pitch / gradient colours (top → bottom), as #RRGGBB.
+    bg_top: str = "#1B6B34"
+    bg_bottom: str = "#0A2A14"
+    # Caption pop/fade animation and gold number highlighting.
+    animate: bool = True
+    emphasize: bool = True
 
     def __post_init__(self) -> None:
         if self.effort not in ("low", "medium", "high", "max"):
@@ -158,6 +166,8 @@ class NewsConfig:
             raise ConfigError("news.words_target must be >= 10")
         if self.caption_words < 1:
             raise ConfigError("news.caption_words must be >= 1")
+        if not 0.0 <= self.scrim <= 1.0:
+            raise ConfigError("news.scrim must be between 0 and 1")
 
 
 @dataclass

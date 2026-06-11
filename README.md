@@ -110,7 +110,18 @@ ytokshorts news --feed "https://www.theguardian.com/football/rss" \
 Outputs `work/news/news_01.mp4 …` plus `work/news_manifest.json`. The scripts use
 Claude (`claude-opus-4-8` by default, configurable) with structured outputs; the
 voiceover uses the free Microsoft **edge-tts** (no key), and its word-boundary
-timings drive the on-screen captions.
+timings drive the on-screen captions — which **pop/fade in** and **highlight
+numbers/scores in gold**.
+
+**Background:** by default it draws a stylized **football pitch** (no assets,
+no rights issues). Point `--background` at your own image, video, or a folder
+(cycled per clip) to use that instead — it's cover-cropped to 9:16 with a dark
+scrim so the captions stay readable:
+
+```bash
+ytokshorts news --count 3 --background ./my_broll/      # folder of clips/images
+ytokshorts news --count 3 --background stadium.jpg      # a single image
+```
 
 > ⚠️ Use feeds/footage you're allowed to repost. This tool writes original
 > scripts and generates its own visuals/voiceover — it does **not** scrape
