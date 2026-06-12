@@ -116,6 +116,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Background image/video/folder (default: a drawn football pitch).",
     )
     p_news.add_argument("--no-llm", action="store_true", help="Script from the headline; skip Claude.")
+    p_news.add_argument("--new-only", action="store_true", help="Only process stories not seen in a previous run.")
     p_news.add_argument("--avatar", action="store_true", help="Composite an AI presenter (country kit) over the pitch.")
     p_news.add_argument("--avatar-mode", choices=["clips", "photo", "local", "heygen"], help="Presenter engine.")
     p_news.add_argument("--presenters", help="Folder of per-country presenter clips (clips mode).")
@@ -222,6 +223,7 @@ def _cmd_news(args: argparse.Namespace) -> int:
         count=args.count,
         use_llm=not args.no_llm,
         do_upload=do_upload,
+        new_only=args.new_only,
     )
     print(f"\nDone. {len(manifest['clips'])} news Short(s):")
     for c in manifest["clips"]:

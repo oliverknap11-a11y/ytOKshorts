@@ -23,6 +23,7 @@ from . import compose as compose_mod
 from . import feeds as feeds_mod
 from . import portrait as portrait_mod
 from . import script as script_mod
+from . import state as state_mod
 from . import tts as tts_mod
 from .country import detect_country
 
@@ -50,8 +51,14 @@ def run_news_pipeline(
     count: int | None = None,
     use_llm: bool = True,
     do_upload: bool | None = None,
+    new_only: bool = False,
 ) -> dict:
-    """Generate news Shorts and return a manifest dict (also written to disk)."""
+    """Generate news Shorts and return a manifest dict (also written to disk).
+
+    When ``new_only`` is set, stories already processed in a previous run (tracked
+    in ``work/seen.json``) are skipped — so a scheduled run only makes videos for
+    newly published news.
+    """
     news = config.news
     n = count or news.count
 
@@ -61,10 +68,19 @@ def run_news_pipeline(
     require_tool("ffmpeg")  # fail early with a friendly message if it's missing
 
     log.info("Fetching feed: %s", news.feed)
-    items = feeds_mod.fetch_feed(news.feed)
-    if not items:
+    all_items = feeds_mod.fetch_feed(news.feed)
+    if not all_items:
         raise ValueError(f"No stories found in feed: {news.feed}")
-    items = items[:n]
+
+    seen_path = work / "seen.json"
+    seen = state_mod.load_seen(seen_path) if new_only else set()
+    candidates = state_mod.filter_new(all_items, seen) if new_only else all_items
+    items = candidates[:n]
+
+    if not items:
+        log.info("No new stories to process.")
+        return _write_manifest(work, news, use_llm, [])
+
     log.info("Building %d Short(s) from the top stories.", len(items))
 
     schedule = upload_mod.compute_schedule_times(
@@ -152,6 +168,16 @@ def run_news_pipeline(
     if should_upload:
         _upload_clips(results, config)
 
+    # Mark these stories processed so a --new-only run won't repeat them.
+    if new_only:
+        seen |= {state_mod.story_key(it) for it in items}
+        state_mod.save_seen(seen_path, seen)
+
+    return _write_manifest(work, news, use_llm, results)
+
+
+def _write_manifest(work: Path, news, use_llm: bool, results: list) -> dict:
+    """Write and return the run manifest (also covers the no-new-stories case)."""
     manifest = {
         "feed": news.feed,
         "model": news.model if use_llm else "headline-fallback",
