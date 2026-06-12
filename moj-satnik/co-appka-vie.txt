@@ -1,0 +1,66 @@
+MÔJ ŠATNÍK – KOMBINÁTOR OUTFITOV
+Čo appka vie
+=====================================
+
+AKO JU SPUSTÍŠ
+--------------
+Netreba nič inštalovať. Stačí otvoriť súbor index.html v prehliadači
+(dvojklikom) – funguje na počítači aj v mobile.
+
+PRIDÁVANIE OBLEČENIA
+--------------------
+- Nahráš fotku oblečenia z počítača alebo mobilu (môže byť aj viac fotiek
+  naraz, funguje aj pretiahnutie myšou – drag & drop).
+- Alebo vložíš priamy odkaz (URL) na obrázok z internetu.
+- Alebo vložíš odkaz na produkt v e-shope – uloží sa ako klikateľný odkaz.
+- Každému kusu môžeš dať vlastný názov (napr. „biele tričko Zara“).
+
+TIP: Bežný odkaz na stránku produktu sa nedá zobraziť ako fotka. Na
+zobrazenie obrázka použi priamy odkaz na obrázok (pravý klik na fotku
+v e-shope -> „Kopírovať adresu obrázka“).
+
+KATEGÓRIE
+---------
+- Spodné diely: nohavice, rifle, sukňa, skort, kraťasy
+- Vrchné diely: tričko, top, vesta, bunda, mikina, sako
+- Šaty (počítajú sa ako samostatný celý outfit)
+
+OUTFITY
+-------
+- Appka automaticky poskladá VŠETKY kombinácie: každý vrchný diel
+  s každým spodným dielom.
+- Každý outfit sa zobrazí ako obrázková karta – fotka vrchného dielu
+  a pod ňou fotka spodného dielu.
+- Šaty sa zobrazujú ako samostatné outfity.
+- Pri každom outfite vidíš názvy a kategórie oboch kusov.
+- Počítadlo ukazuje, koľko kombinácií máš celkovo.
+
+OBĽÚBENÉ, FILTRE A MIEŠANIE
+---------------------------
+- Outfit, ktorý sa ti páči, si označíš srdiečkom ❤.
+- Filter „len obľúbené“ ti zobrazí iba označené outfity.
+- Môžeš filtrovať kombinácie podľa konkrétneho kusu oblečenia
+  (napr. „ukáž všetky outfity s týmito riflami“).
+- Tlačidlo „Zamiešať“ náhodne premieša poradie outfitov, nech máš
+  vždy čerstvú inšpiráciu.
+
+ŠATNÍK
+------
+- Prehľad všetkého oblečenia rozdelený podľa skupín (vrchné diely,
+  spodné diely, šaty) s počtom kusov.
+- Každý kus môžeš kedykoľvek zmazať (✕) – zmažú sa aj jeho kombinácie.
+- Pri kuse s odkazom na e-shop sa zobrazí klikateľný odkaz „e-shop“.
+
+ZÁLOHA DÁT
+----------
+- Export: celý šatník (fotky, kusy aj obľúbené outfity) si stiahneš
+  ako jeden JSON súbor.
+- Import: zo zálohy si šatník kedykoľvek obnovíš – aj v inom
+  prehliadači alebo na inom zariadení.
+
+SÚKROMIE
+--------
+- Všetky dáta sa ukladajú LEN lokálne v tvojom prehliadači
+  (localStorage) – nikam sa neposielajú.
+- Fotky sa pri ukladaní automaticky zmenšujú, aby sa do úložiska
+  zmestilo čo najviac kusov oblečenia.
