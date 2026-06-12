@@ -49,12 +49,16 @@ bg_bottom = "#0A2A14"
 [avatar]
 # Optional AI presenter composited in front of the pitch (news Shorts).
 enabled = false
-mode = "clips"            # "clips" | "photo" (lip-sync your image) | "heygen" (hosted avatar)
+mode = "clips"            # "clips" | "photo" (HeyGen) | "local" (SadTalker) | "heygen"
 clips_dir = "presenters"  # clips mode: <country>.mp4 (e.g. england.mp4) + neutral.mp4
-photo_dir = "avatars"     # photo mode: <country>.png (e.g. portugal.png) + neutral.png
-green_matte = true        # photo mode: auto-remove the image background for keying
+photo_dir = "avatars"     # photo/local: <country>.png (e.g. portugal.png) + neutral.png
+green_matte = true        # auto-remove the image background for keying
+framing = "auto"          # "auto" crops full-body shots to head & shoulders; "upper" | "full"
 use_avatar_iv = true      # photo mode: HeyGen Avatar IV motion engine
 chroma_color = "#00FF00"  # green-screen colour to key out ("" for alpha video)
+# local mode (free, needs a GPU): the lip-sync command + the folder to run it in.
+local_command = 'python inference.py --source_image "{image}" --driven_audio "{audio}" --result_dir "{result_dir}" --still --preprocess full'
+local_cwd = "SadTalker"
 scale = 0.62              # presenter height as a fraction of the frame
 position = "bottom"       # "bottom" | "center"
 subtitles = "top"         # keep subtitles above her head: "top" | "center" | "full"

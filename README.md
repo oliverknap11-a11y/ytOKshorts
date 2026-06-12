@@ -146,8 +146,16 @@ Three engines (`avatar.mode`):
   edge-tts voiceover kept. Render the looks once however you like.
 - **`photo`** (paid lip-sync) — supply your **own per-country avatar images**
   (`avatars/portugal.png`, `avatars/neutral.png`, …). The tool mattes each onto
-  a green screen (`rembg`), lip-syncs it to the voiceover via **HeyGen Talking
-  Photo** (`x-api-key`, Avatar IV), then chroma-keys her onto the pitch.
+  a green screen (`rembg`), auto-crops a full-body shot to head-and-shoulders
+  (`framing`), lip-syncs it via **HeyGen Talking Photo**, then keys her onto the pitch.
+- **`local`** (free, needs a GPU) — same image flow, but lip-synced by a **local
+  tool you install** (e.g. [SadTalker](https://github.com/OpenTalker/SadTalker)).
+  No per-clip cost. Configure `avatar.local_command` / `avatar.local_cwd`:
+  ```bash
+  git clone https://github.com/OpenTalker/SadTalker && cd SadTalker
+  pip install -r requirements.txt && bash scripts/download_models.sh   # ~2GB weights
+  ```
+  Then `ytokshorts news --avatar --avatar-mode local --avatars ./avatars`.
 - **`heygen`** (paid) — generate from a HeyGen-hosted `avatar_id` per country
   (`[avatar.avatar_map]`).
 

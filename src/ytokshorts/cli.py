@@ -117,7 +117,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p_news.add_argument("--no-llm", action="store_true", help="Script from the headline; skip Claude.")
     p_news.add_argument("--avatar", action="store_true", help="Composite an AI presenter (country kit) over the pitch.")
-    p_news.add_argument("--avatar-mode", choices=["clips", "photo", "heygen"], help="Presenter engine.")
+    p_news.add_argument("--avatar-mode", choices=["clips", "photo", "local", "heygen"], help="Presenter engine.")
     p_news.add_argument("--presenters", help="Folder of per-country presenter clips (clips mode).")
     p_news.add_argument("--avatars", help="Folder of per-country avatar images (photo mode).")
     p_news.add_argument("--work-dir", help="Directory for intermediate and output files.")

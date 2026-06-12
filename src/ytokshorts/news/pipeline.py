@@ -186,7 +186,7 @@ def _make_presenter(
         )
         return (out, True), country
 
-    if av.mode == "photo":
+    if av.mode in ("photo", "local"):
         photo = avatar_mod.resolve_photo(country, av)
         if photo is None:
             log.warning(
@@ -198,13 +198,19 @@ def _make_presenter(
         if not green.exists():
             portrait_mod.to_green_screen(
                 photo, green, color=av.chroma_color or "#00FF00",
-                remove_background=av.green_matte,
+                remove_background=av.green_matte, framing=av.framing,
             )
         out = clips_dir / f"presenter_{index + 1:02d}.mp4"
-        avatar_mod.generate_from_photo(
-            green, audio_path, av,
-            width=config.reframe.width, height=config.reframe.height, out_path=out,
-        )
+        if av.mode == "local":
+            avatar_mod.run_local_lipsync(
+                green, audio_path, out, av,
+                result_dir=clips_dir / f"_lipsync_{index + 1:02d}",
+            )
+        else:  # photo (HeyGen)
+            avatar_mod.generate_from_photo(
+                green, audio_path, av,
+                width=config.reframe.width, height=config.reframe.height, out_path=out,
+            )
         return (out, True), country
 
     # clips mode: overlay a per-country loop you supplied (our voiceover is kept).

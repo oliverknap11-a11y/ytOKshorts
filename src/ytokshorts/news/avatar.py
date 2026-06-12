@@ -136,6 +136,55 @@ def resolve_photo(country: str | None, config: AvatarConfig) -> Path | None:
 # heygen mode (HTTP — lazy, isolated)
 # --------------------------------------------------------------------------- #
 
+def build_local_command(template: str, image: str | Path, audio: str | Path,
+                        result_dir: str | Path) -> str:
+    """Substitute {image}/{audio}/{result_dir} into a local lip-sync command (pure)."""
+    return template.format(
+        image=str(Path(image).resolve()),
+        audio=str(Path(audio).resolve()),
+        result_dir=str(Path(result_dir).resolve()),
+    )
+
+
+def newest_video(directory: str | Path) -> Path:
+    """Return the most recently modified video file under ``directory``."""
+    base = Path(directory)
+    vids = [p for p in base.rglob("*") if p.suffix.lower() in _VIDEO_EXTS]
+    if not vids:
+        raise YtokshortsError(f"Local lip-sync produced no video in {base}")
+    return max(vids, key=lambda p: p.stat().st_mtime)
+
+
+def run_local_lipsync(
+    image_path: str | Path,
+    audio_path: str | Path,
+    out_path: str | Path,
+    config: AvatarConfig,
+    *,
+    result_dir: str | Path,
+) -> Path:
+    """Run the configured local tool (e.g. SadTalker) and return the output clip."""
+    import shutil
+    import subprocess
+
+    result = Path(result_dir)
+    result.mkdir(parents=True, exist_ok=True)
+    command = build_local_command(config.local_command, image_path, audio_path, result)
+    cwd = config.local_cwd or None
+    log.info("  Local lip-sync: %s", command)
+    proc = subprocess.run(command, shell=True, cwd=cwd)  # noqa: S602 - user-configured command
+    if proc.returncode != 0:
+        raise YtokshortsError(
+            f"Local lip-sync command failed (exit {proc.returncode}). "
+            f"Check avatar.local_command / avatar.local_cwd ({config.local_cwd!r})."
+        )
+    produced = newest_video(result)
+    out = Path(out_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(produced, out)
+    return out
+
+
 def _api_key(config: AvatarConfig) -> str:
     import os
 

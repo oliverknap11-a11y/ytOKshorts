@@ -32,25 +32,72 @@ def composite_on_color(image, color: str):
     return bg.convert("RGB")
 
 
+def subject_bbox(image):
+    """Bounding box (left, top, right, bottom) of the non-transparent subject.
+
+    Returns None if the image has no alpha or is fully transparent.
+    """
+    if image.mode != "RGBA":
+        return None
+    return image.getchannel("A").getbbox()
+
+
+def crop_upper_body(image, keep: float = 0.55):
+    """Crop an RGBA cutout to the subject's head + upper body (pure-ish).
+
+    ``keep`` is the fraction of the subject's height (from the top of the head
+    down) to retain, so a tall full-body shot becomes a head-and-shoulders frame
+    with a large, lip-syncable face. No-op if there's no subject alpha.
+    """
+    box = subject_bbox(image)
+    if box is None:
+        return image
+    left, top, right, bottom = box
+    new_bottom = top + max(1, round((bottom - top) * keep))
+    # Widen slightly so shoulders aren't clipped, clamped to the image.
+    pad = round((right - left) * 0.12)
+    left = max(0, left - pad)
+    right = min(image.width, right + pad)
+    return image.crop((left, top, right, min(new_bottom, image.height)))
+
+
+def _should_crop(image, framing: str) -> bool:
+    """Decide whether to crop to upper body for the given framing policy."""
+    if framing == "full":
+        return False
+    if framing == "upper":
+        return True
+    # auto: crop only clearly full-body shots (tall subject bounding box).
+    box = subject_bbox(image)
+    if box is None:
+        return False
+    left, top, right, bottom = box
+    height, width = bottom - top, max(1, right - left)
+    return height / width > 2.0
+
+
 def to_green_screen(
     image_path: str | Path,
     out_path: str | Path,
     *,
     color: str = "#00FF00",
     remove_background: bool = True,
+    framing: str = "auto",
 ) -> Path:
-    """Write a green-screen version of ``image_path`` to ``out_path``.
+    """Write a green-screen (optionally upper-body-cropped) version of an image.
 
-    When ``remove_background`` is True the subject is cut out with ``rembg``
-    first; otherwise the image's own alpha (if any) is composited over green.
+    When ``remove_background`` is True the subject is cut out with ``rembg``;
+    ``framing`` then optionally crops a full-body shot to head-and-shoulders so
+    the talking face is large. The result is composited over ``color``.
     """
     from PIL import Image  # part of the news/avatar extras
 
     src = Image.open(image_path)
-    if remove_background and src.mode != "RGBA":
+    if remove_background and (src.mode != "RGBA" or _is_opaque(src)):
         src = _remove_background(src)
-    elif remove_background and _is_opaque(src):
-        src = _remove_background(src)
+
+    if src.mode == "RGBA" and _should_crop(src, framing):
+        src = crop_upper_body(src)
 
     out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)

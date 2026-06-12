@@ -8,12 +8,14 @@ from ytokshorts.errors import ConfigError, YtokshortsError
 from ytokshorts.news.avatar import (
     avatar_id_for_country,
     build_generate_payload,
+    build_local_command,
     build_talking_photo_payload,
+    newest_video,
     parse_status,
     resolve_photo,
     resolve_presenter_clip,
 )
-from ytokshorts.news.portrait import composite_on_color
+from ytokshorts.news.portrait import composite_on_color, crop_upper_body, subject_bbox
 from ytokshorts.news.compose import build_news_ass, build_presenter_compose_command
 from ytokshorts.news.country import detect_country
 
@@ -123,6 +125,45 @@ def test_composite_on_color_replaces_transparency():
     out = composite_on_color(img, "#00FF00")
     assert out.mode == "RGB"
     assert out.getpixel((0, 0)) == (0, 255, 0)
+
+
+def test_crop_upper_body_keeps_head_region():
+    from PIL import Image
+    # Transparent 100x400 canvas with an opaque "subject" from y=40..360 (tall).
+    img = Image.new("RGBA", (100, 400), (0, 0, 0, 0))
+    for y in range(40, 360):
+        for x in range(30, 70):
+            img.putpixel((x, y), (200, 30, 40, 255))
+    assert subject_bbox(img) == (30, 40, 70, 360)
+    cropped = crop_upper_body(img, keep=0.55)
+    # Subject height 320 -> keep 176 -> cropped height ~176 (well under 400).
+    assert cropped.height < img.height
+    assert 150 < cropped.height < 220
+
+
+def test_build_local_command_substitutes(tmp_path):
+    (tmp_path / "a.png").write_bytes(b"x")
+    (tmp_path / "v.mp3").write_bytes(b"x")
+    cmd = build_local_command(
+        'python inf.py --source_image "{image}" --driven_audio "{audio}" --result_dir "{result_dir}"',
+        tmp_path / "a.png", tmp_path / "v.mp3", tmp_path / "out",
+    )
+    assert "a.png" in cmd and "v.mp3" in cmd and "out" in cmd
+    assert "{image}" not in cmd
+
+
+def test_newest_video_picks_latest(tmp_path):
+    import os, time
+    old = tmp_path / "old.mp4"; old.write_bytes(b"x")
+    time.sleep(0.01)
+    new = tmp_path / "sub" / "new.mp4"; new.parent.mkdir(); new.write_bytes(b"x")
+    os.utime(new, (time.time() + 5, time.time() + 5))
+    assert newest_video(tmp_path) == new
+
+
+def test_newest_video_none(tmp_path):
+    with pytest.raises(YtokshortsError):
+        newest_video(tmp_path)
 
 
 # --------------------------------------------------------------------------- #

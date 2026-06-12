@@ -187,16 +187,27 @@ class AvatarConfig:
     enabled: bool = False
     # "clips"  — overlay per-country presenter clips you supply (free)
     # "photo"  — lip-sync per-country still images via a provider (your own avatar)
+    # "local"  — lip-sync per-country stills with a LOCAL tool (SadTalker), free
     # "heygen" — generate from a HeyGen-hosted avatar_id
     mode: str = "clips"
     # clips mode: a folder with <country>.mp4 (e.g. england.mp4) + neutral.mp4
     clips_dir: str = "presenters"
     # photo mode: a folder with <country>.png (e.g. portugal.png) + neutral.png
     photo_dir: str = "avatars"
-    # photo mode: matte the subject onto a green screen so we can key her onto the
+    # photo/local: matte the subject onto a green screen so we can key her onto the
     # pitch (set False if your images already have a green/transparent background).
     green_matte: bool = True
+    # Framing of a still before lip-sync: "auto" crops a full-body shot to head &
+    # shoulders (so the talking face is large); "upper" always crops; "full" never.
+    framing: str = "auto"
     use_avatar_iv: bool = True          # HeyGen Avatar IV motion engine (photo mode)
+    # local mode (SadTalker etc.): the command run per clip, with {image} {audio}
+    # {result_dir} substituted, and the directory to run it in.
+    local_command: str = (
+        'python inference.py --source_image "{image}" --driven_audio "{audio}" '
+        '--result_dir "{result_dir}" --still --preprocess full'
+    )
+    local_cwd: str = "SadTalker"
     # API key env var, plus heygen-mode country -> avatar_id map.
     api_key_env: str = "HEYGEN_API_KEY"
     avatar_map: dict = field(default_factory=dict)   # country -> HeyGen avatar_id
@@ -212,8 +223,10 @@ class AvatarConfig:
     subtitles: str = "top"              # "top" | "center" | "full"
 
     def __post_init__(self) -> None:
-        if self.mode not in ("clips", "photo", "heygen"):
-            raise ConfigError("avatar.mode must be 'clips', 'photo', or 'heygen'")
+        if self.mode not in ("clips", "photo", "local", "heygen"):
+            raise ConfigError("avatar.mode must be 'clips', 'photo', 'local', or 'heygen'")
+        if self.framing not in ("auto", "upper", "full"):
+            raise ConfigError("avatar.framing must be 'auto', 'upper', or 'full'")
         if self.position not in ("bottom", "center"):
             raise ConfigError("avatar.position must be 'bottom' or 'center'")
         if self.subtitles not in ("top", "center", "full"):
