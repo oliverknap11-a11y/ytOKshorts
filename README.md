@@ -156,6 +156,19 @@ Three engines (`avatar.mode`):
   pip install -r requirements.txt && bash scripts/download_models.sh   # ~2GB weights
   ```
   Then `ytokshorts news --avatar --avatar-mode local --avatars ./avatars`.
+
+  > SadTalker needs **Python 3.10** (it fails to build on 3.11/3.12). On Windows,
+  > make a dedicated env inside the SadTalker folder and point the tool at it:
+  > ```powershell
+  > py -3.10 -m venv venv
+  > .\venv\Scripts\activate
+  > python -m pip install --upgrade pip setuptools wheel
+  > pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+  > pip install -r requirements.txt
+  > ```
+  > Download the model weights manually (no bash needed) into `checkpoints/` and
+  > `gfpgan/weights/` per the SadTalker README's "Download Trained Models", then set
+  > `local_command` to use the venv: `venv\Scripts\python.exe inference.py ...`.
 - **`heygen`** (paid) — generate from a HeyGen-hosted `avatar_id` per country
   (`[avatar.avatar_map]`).
 
