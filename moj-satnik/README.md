@@ -34,11 +34,18 @@ Appku môžeš používať tromi spôsobmi – od najjednoduchšieho po App Stor
 Appka sa pridá ako ikona, spúšťa sa na celú obrazovku a funguje offline.
 Zabezpečujú to `manifest.webmanifest`, `service-worker.js` a ikony v `icons/`.
 
-### 3. Natívna iOS appka v App Store
-V priečinku [`ios-app/`](ios-app/) je pripravený **Capacitor** projekt aj
-kompletný návod [`ios-app/APP-STORE.md`](ios-app/APP-STORE.md) (slovensky),
-texty pre obchod a zásady súkromia. Publikovanie vyžaduje Mac s Xcode a
-Apple Developer účet (99 USD/rok).
+### 3. Natívna appka v App Store – **bez Macu** (odporúčané)
+V priečinku [`expo-app/`](expo-app/) je pripravený **Expo** projekt. Appku
+zostavíš a nahráš do App Store **cez cloud (EAS Build/Submit), bez Macu**.
+Krok‑po‑kroku návod: [`expo-app/EAS-BUILD.md`](expo-app/EAS-BUILD.md).
+Potrebuješ len Expo účet (zadarmo) a Apple Developer účet (99 USD/rok).
+
+### 4. Natívna iOS appka cez Capacitor (alternatíva, ak máš Mac)
+V priečinku [`ios-app/`](ios-app/) je **Capacitor** projekt a návod
+[`ios-app/APP-STORE.md`](ios-app/APP-STORE.md). Táto cesta vyžaduje Mac s Xcode.
+
+Spoločné pre App Store: hotové texty [`store-listing.md`](store-listing.md)
+a zásady súkromia [`PRIVACY.md`](PRIVACY.md).
 
 ---
 
@@ -53,7 +60,9 @@ zmenšujú, aby sa zmestilo čo najviac kusov.
 | `index.html` | celá webová appka (HTML + CSS + JS, bez závislostí) |
 | `manifest.webmanifest`, `service-worker.js` | PWA – inštalácia na plochu a offline |
 | `icons/` | ikony appky a splash (generuje `tools/make-icons.py`) |
-| `ios-app/` | Capacitor projekt + návod na App Store |
+| `expo-app/` | **Expo** projekt – App Store bez Macu (cloud build) |
+| `ios-app/` | Capacitor projekt – App Store s Macom (alternatíva) |
+| `store-listing.md`, `PRIVACY.md` | texty a súkromie pre App Store |
 | `co-appka-vie.txt` | popis funkcií po slovensky |
 
 ## Technológie

@@ -25,8 +25,8 @@ npm run ios:sync
 | `capacitor.config.json` | appId `com.mojsatnik.app`, názov, webDir |
 | `scripts/sync-web.mjs` | skopíruje `../index.html`, manifest, SW a ikony do `www/` |
 | `APP-STORE.md` | **kompletný návod na publikovanie do App Store (slovensky)** |
-| `store-listing.md` | hotové texty a metadáta pre App Store Connect |
-| `PRIVACY.md` | zásady ochrany súkromia (SK + EN) |
+| `../store-listing.md` | hotové texty a metadáta pre App Store Connect |
+| `../PRIVACY.md` | zásady ochrany súkromia (SK + EN) |
 
 ## Poznámky
 

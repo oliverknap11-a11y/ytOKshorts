@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Môj šatník",
+    "slug": "moj-satnik",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "mojsatnik",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#faf7f2",
+    "primaryColor": "#c4663c",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mojsatnik.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Prístup k fotkám je potrebný, aby si mohol pridať oblečenie do šatníka.",
+        "NSCameraUsageDescription": "Prístup k fotoaparátu je potrebný, aby si mohol odfotiť oblečenie do šatníka."
+      }
+    },
+    "android": {
+      "package": "com.mojsatnik.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#c4663c"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#c4663c"
+        }
+      ]
+    ]
+  }
+}

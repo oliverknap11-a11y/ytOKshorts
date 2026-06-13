@@ -12,9 +12,13 @@ AKO JU SPUSTÍŠ
    „Pridať na plochu“. Pridá sa ikona a appka beží na celú obrazovku
    aj offline.
 
-3) V APP STORE: v priečinku ios-app/ je pripravený projekt (Capacitor)
-   a kompletný návod ios-app/APP-STORE.md. Publikovanie vyžaduje Mac
-   s Xcode a Apple Developer účet (99 USD/rok).
+3) V APP STORE BEZ MACU (odporúčané): v priečinku expo-app/ je pripravený
+   Expo projekt. Appku zostavíš a nahráš do App Store cez cloud
+   (EAS Build/Submit) – netreba Mac. Návod: expo-app/EAS-BUILD.md.
+   Potrebuješ Expo účet (zadarmo) a Apple Developer účet (99 USD/rok).
+
+4) V APP STORE S MACOM (alternatíva): v priečinku ios-app/ je Capacitor
+   projekt a návod ios-app/APP-STORE.md (vyžaduje Mac s Xcode).
 
 PRIDÁVANIE OBLEČENIA
 --------------------

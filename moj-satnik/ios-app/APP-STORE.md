@@ -78,7 +78,7 @@ v simulátore – over, že sa dá pridať oblečenie a poskladať outfity.
    - **Bundle ID:** vyber `com.mojsatnik.app` (objaví sa po prvom uploade alebo
      ho vytvoríš v *Certificates, Identifiers & Profiles*)
    - **SKU:** ľubovoľný interný kód, napr. `MOJSATNIK001`
-3. Texty, kategórie a kľúčové slová nájdeš predvyplnené v **`store-listing.md`**.
+3. Texty, kategórie a kľúčové slová nájdeš predvyplnené v **`../store-listing.md`**.
 
 ---
 
@@ -103,8 +103,8 @@ V App Store Connect pri verzii **1.0**:
 - **Screenshots** – povinné. Najjednoduchšie: spusti appku v simulátore
   „iPhone 16 Pro Max“ a sprav 3–5 screenshotov (⌘S v simulátore).
   Apple vyžaduje 6.7"/6.9" iPhone screenshoty (napr. 1320 × 2868 px).
-- **Promotional text, Description, Keywords** → skopíruj z `store-listing.md`.
-- **Support URL** a **Privacy Policy URL** → pozri `store-listing.md` a `PRIVACY.md`
+- **Promotional text, Description, Keywords** → skopíruj z `../store-listing.md`.
+- **Support URL** a **Privacy Policy URL** → pozri `../store-listing.md` a `../PRIVACY.md`
   (privacy policy musíš zverejniť na nejakej webovej adrese – stačí GitHub Pages).
 - **App Privacy** → klikni *Get Started* a označ **„Data Not Collected“**
   (appka nezbiera žiadne dáta – všetko ostáva v telefóne).
