@@ -16,9 +16,21 @@ lokálne v tvojom zariadení** (v úložisku aplikácie / prehliadača). Tieto d
 nikdy neopúšťajú tvoj telefón. Keď aplikáciu odinštaluješ, dáta sa odstránia
 spolu s ňou.
 
+## AI skúšobňa (voliteľná online funkcia)
+
+Aplikácia má voliteľnú funkciu „AI skúšobňa“, ktorá vie outfit zobraziť
+oblečený na modelovi. **Táto funkcia je vypnutá, kým si ju sám nezapneš** (kým
+nenastavíš adresu svojho proxy servera). Keď ju použiješ, fotky daného
+oblečenia a zvoleného modela sa **odošlú cez tvoj vlastný proxy server do
+zvolenej AI služby**, ktorá vygeneruje výsledný obrázok. Tieto fotky tak
+opúšťajú zariadenie len pri použití tejto funkcie a len pre tento účel; spravuje
+ich poskytovateľ AI služby podľa jeho vlastných podmienok. Bez použitia tejto
+funkcie ostáva appka plne offline.
+
 ## Zdieľanie s tretími stranami
 
-Žiadne dáta nezdieľame s tretími stranami, pretože žiadne dáta nezhromažďujeme.
+Okrem vyššie uvedenej voliteľnej AI skúšobne žiadne dáta nezdieľame s tretími
+stranami, pretože žiadne nezhromažďujeme.
 
 ## Povolenia
 
@@ -49,7 +61,15 @@ no ads, no analytics and no tracking.
 outfits are stored **only locally on your device**. This data never leaves your
 phone and is removed when you uninstall the app.
 
-**Third parties:** we share no data with anyone, because we collect none.
+**AI try-on (optional online feature):** the optional "AI try-on" feature shows
+an outfit worn by a model. It is off until you enable it (by setting your own
+proxy server URL). When used, the photos of the selected clothing and model are
+sent through your own proxy to the chosen AI service to generate the result
+image; they are handled by that provider under its own terms. Without this
+feature the app stays fully offline.
+
+**Third parties:** apart from the optional AI try-on above, we share no data
+with anyone, because we collect none.
 
 **Permissions:** if you add photos from your gallery or camera, the system may
 ask for permission. Selected photos are only displayed inside the app and stay

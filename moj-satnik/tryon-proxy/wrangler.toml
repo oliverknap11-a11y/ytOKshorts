@@ -1,0 +1,10 @@
+name = "satnik-tryon-proxy"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Ktorá AI služba sa použije: "mock" (zdarma, ukážka) alebo "fashn" (reálny try-on)
+[vars]
+PROVIDER = "mock"
+
+# API kľúč sa NEDÁVA sem, ale ako tajomstvo (secret):
+#   wrangler secret put FASHN_API_KEY
