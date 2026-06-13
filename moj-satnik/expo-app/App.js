@@ -4,8 +4,8 @@ import { WebView } from 'react-native-webview';
 import { StatusBar } from 'expo-status-bar';
 import html from './assets/app-html';
 
-const BG = '#faf7f2';
-const ACCENT = '#c4663c';
+const BG = '#17141f';
+const ACCENT = '#8b5cff';
 
 // Stabilná "origin" pre WebView, aby localStorage (uložený šatník)
 // pretrval medzi spusteniami appky.
@@ -16,7 +16,7 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <WebView
         originWhitelist={['*']}
         source={{ html, baseUrl: BASE_URL }}

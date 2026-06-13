@@ -6,9 +6,9 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "mojsatnik",
-    "userInterfaceStyle": "light",
-    "backgroundColor": "#faf7f2",
-    "primaryColor": "#c4663c",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#17141f",
+    "primaryColor": "#8b5cff",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mojsatnik.app",
@@ -22,7 +22,7 @@
       "package": "com.mojsatnik.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#c4663c"
+        "backgroundColor": "#7c5cff"
       }
     },
     "web": {
@@ -33,9 +33,9 @@
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
-          "imageWidth": 220,
+          "imageWidth": 240,
           "resizeMode": "contain",
-          "backgroundColor": "#c4663c"
+          "backgroundColor": "#17141f"
         }
       ]
     ]

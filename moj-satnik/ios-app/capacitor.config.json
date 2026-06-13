@@ -2,7 +2,7 @@
   "appId": "com.mojsatnik.app",
   "appName": "Môj šatník",
   "webDir": "www",
-  "backgroundColor": "#faf7f2",
+  "backgroundColor": "#17141f",
   "ios": {
     "contentInset": "always"
   },
