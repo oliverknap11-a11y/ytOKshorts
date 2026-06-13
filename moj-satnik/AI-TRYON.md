@@ -75,9 +75,24 @@ diel aj šaty.
   **uložiť / zdieľať** a označiť ❤.
 - Výsledky sa kešujú (rovnaký outfit + model = negeneruje sa znova = šetrí kredit).
 
-## Ďalší krok
+## Čo je už hotové ✅
 
-Keď vyberieš **službu** (odporúčam FASHN.ai) a **či kľúč priamo v appke alebo
-cez malý proxy**, naimplementujem to a napojím na konkrétne API (vrátane
-zreťazenia vrchný+spodný diel a kešovania). Na otestovanie budeš potrebovať
-vlastný API kľúč danej služby.
+Podľa tvojich rozhodnutí (službu vyberieme neskôr, prednastavené modely, proxy
+server) je už postavené:
+
+- **Proxy server** – `tryon-proxy/` (Cloudflare Worker) s voľbou služby cez
+  premennú `PROVIDER`. Má režim **`mock`** (funguje hneď, zadarmo) a pripravený
+  adaptér **`fashn`** (FASHN.ai). Pridať inú službu = jeden adaptér navyše.
+- **Appka** – sekcia „AI skúšobňa“ (adresa proxy + výber prednastaveného modela)
+  a tlačidlo **„🧍 Obleč na modela“** pri každom outfite aj pri Outfit dňa.
+  Volá proxy, zobrazí výsledok, vie ho uložiť, a kešuje (nešetrí kredit zbytočne).
+  Otestované end-to-end v `mock` režime.
+
+## Čo ešte treba (od teba)
+
+1. **Vybrať AI službu** (odporúčam FASHN.ai) a získať k nej **API kľúč**.
+2. **Nasadiť proxy** podľa `tryon-proxy/README.md`, vložiť kľúč ako secret,
+   prepnúť `PROVIDER` na zvolenú službu.
+3. **Reálne fotky modelov** – prednastavené modely sú teraz placeholder siluety;
+   nahradia sa reálnymi/AI vygenerovanými fotkami osôb (vie ich vygenerovať aj
+   FASHN). Doplníme po výbere služby.

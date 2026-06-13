@@ -367,6 +367,32 @@
     .ootd-card img, .ootd-card.single img { width: 50%; height: 220px; flex: 1; }
   }
 
+  /* --- AI skúšobňa --- */
+  .ai-panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; padding: 0 18px; }
+  .ai-panel > summary { cursor: pointer; padding: 16px 0; font-weight: 600; list-style: none; }
+  .ai-panel > summary::-webkit-details-marker { display: none; }
+  .ai-panel .beta { font-size: .64rem; background: var(--accent-soft); color: #d9ccff; padding: 2px 8px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+  .ai-panel .ai-body { padding-bottom: 18px; display: flex; flex-direction: column; gap: 14px; }
+  .ai-models { display: flex; gap: 10px; flex-wrap: wrap; }
+  .ai-model { border: 2px solid var(--line); border-radius: 12px; overflow: hidden; cursor: pointer; width: 76px; background: #2a2238; transition: border-color .12s; }
+  .ai-model.on { border-color: var(--accent); }
+  .ai-model img { width: 100%; height: 96px; object-fit: cover; display: block; }
+  .ai-model span { display: block; text-align: center; font-size: .7rem; color: var(--muted); padding: 4px 0; }
+  .tryon-btn { position: absolute; bottom: 8px; right: 8px; border: none; background: rgba(13,11,18,.72); color: #fff; border-radius: 999px; font-size: .74rem; padding: 6px 11px; cursor: pointer; box-shadow: var(--shadow); }
+  .tryon-btn:hover { background: var(--accent); }
+
+  .modal { position: fixed; inset: 0; background: rgba(8,6,12,.74); display: flex; align-items: center; justify-content: center; z-index: 60; padding: 20px; }
+  .modal[hidden] { display: none; }
+  .modal-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); width: 100%; max-width: 420px; padding: 18px; position: relative; box-shadow: var(--shadow); max-height: 90vh; overflow: auto; }
+  .modal-x { position: absolute; top: 12px; right: 12px; border: none; background: #2a2238; color: var(--ink); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; }
+  .modal-title { font-weight: 700; margin-bottom: 14px; }
+  .tryon-srcs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .tryon-srcs img { width: 58px; height: 78px; object-fit: cover; border-radius: 8px; background: #2a2238; }
+  .tryon-result img { width: 100%; border-radius: 12px; display: block; background: #2a2238; }
+  .tryon-loading { text-align: center; color: var(--muted); padding: 30px 10px; line-height: 1.6; }
+  .spinner { width: 34px; height: 34px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; margin: 0 auto 14px; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   /* rešpektuj výrez/notch na iPhone keď beží ako appka */
   header { padding-top: calc(28px + env(safe-area-inset-top)); }
   main { padding-left: calc(16px + env(safe-area-inset-left)); padding-right: calc(16px + env(safe-area-inset-right)); }
@@ -468,6 +494,21 @@
 
   <!-- ===================== OUTFITY ===================== -->
   <section id="tabOutfits" class="tab">
+    <details class="ai-panel" id="aiPanel">
+      <summary>🧍 AI skúšobňa <span class="beta">beta</span></summary>
+      <div class="ai-body">
+        <label class="field">Adresa proxy servera
+          <input type="url" id="proxyUrl" placeholder="https://…workers.dev">
+        </label>
+        <div>
+          <div class="lbl" style="font-size:.8rem;color:var(--muted);margin-bottom:6px">Model</div>
+          <div class="ai-models" id="aiModels"></div>
+        </div>
+        <p class="hint">Pri outfite klikni „🧍 Obleč na modela“ a AI ho oblečie na vybraný model.
+          Proxy server (kde je uložený API kľúč) nasadíš podľa návodu <b>tryon-proxy/README.md</b>.
+          Bez nastavenej adresy proxy funkcia nebeží.</p>
+      </div>
+    </details>
     <div class="stats" id="outfitStats"></div>
     <div class="ootd" id="ootd"></div>
     <div class="toolbar">
@@ -496,6 +537,14 @@
 
 </main>
 
+<div id="tryonModal" class="modal" hidden>
+  <div class="modal-card">
+    <button class="modal-x" id="tryonClose" title="Zavrieť">✕</button>
+    <div class="modal-title">🧍 AI skúšobňa</div>
+    <div id="tryonBody"></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -517,6 +566,23 @@
   var SEASONS   = ["jar", "leto", "jeseň", "zima"];
   var OCCASIONS = ["voľný čas", "práca", "šport", "večer"];
 
+  // Prednastavené modely pre AI skúšobňu (placeholder siluety – nahradia sa
+  // reálnymi/AI vygenerovanými fotkami modela po výbere AI služby).
+  function modelSvg(bg) {
+    var s = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 160'>" +
+      "<rect width='120' height='160' fill='" + bg + "'/>" +
+      "<circle cx='60' cy='40' r='19' fill='#ffffffcc'/>" +
+      "<rect x='41' y='64' width='38' height='50' rx='17' fill='#ffffffcc'/>" +
+      "<path d='M34 152c0-22 12-38 26-38s26 16 26 38z' fill='#ffffffcc'/></svg>";
+    return "data:image/svg+xml," + encodeURIComponent(s);
+  }
+  var PRESET_MODELS = [
+    { id: "m1", name: "Model A", src: modelSvg("#6f49e0") },
+    { id: "m2", name: "Model B", src: modelSvg("#c93f86") },
+    { id: "m3", name: "Model C", src: modelSvg("#2f8f9e") }
+  ];
+  var tryonCache = {}; // {modelId|comboKey: image} – len v pamäti (nešetrí sa do úložiska)
+
   var state = load();
   var shuffleSeed = null; // null = pôvodné poradie
   var editingId = null;
@@ -531,11 +597,12 @@
         var data = JSON.parse(raw);
         if (data && Array.isArray(data.items)) {
           data.favs = data.favs || {};
+          data.settings = data.settings || { proxyUrl: "", modelId: "m1" };
           return data;
         }
       }
     } catch (e) { /* poškodené dáta – začne sa odznova */ }
-    return { items: [], favs: {} };
+    return { items: [], favs: {}, settings: { proxyUrl: "", modelId: "m1" } };
   }
 
   function save() {
@@ -767,7 +834,7 @@
       try {
         var data = JSON.parse(reader.result);
         if (!data || !Array.isArray(data.items)) throw new Error();
-        state = { items: data.items, favs: data.favs || {} };
+        state = { items: data.items, favs: data.favs || {}, settings: data.settings || { proxyUrl: "", modelId: "m1" } };
         save();
         renderAll();
         toast("Šatník obnovený zo zálohy ✔");
@@ -1010,6 +1077,7 @@
     }
     card.appendChild(labels);
     card.appendChild(makeFavBtn(c));
+    card.appendChild(makeTryonBtn(c));
     return card;
   }
 
@@ -1076,6 +1144,7 @@
     body.appendChild(t);
     card.appendChild(body);
     card.appendChild(makeFavBtn(c));
+    card.appendChild(makeTryonBtn(c));
     host.appendChild(card);
   }
 
@@ -1104,7 +1173,107 @@
     filtered.forEach(function (c) { root.appendChild(makeOutfitCard(c)); });
   }
 
+  /* ---------- AI skúšobňa (virtual try-on cez proxy) ---------- */
+
+  function currentModel() {
+    for (var i = 0; i < PRESET_MODELS.length; i++) {
+      if (PRESET_MODELS[i].id === state.settings.modelId) return PRESET_MODELS[i];
+    }
+    return PRESET_MODELS[0];
+  }
+
+  function renderAiPanel() {
+    $("proxyUrl").value = state.settings.proxyUrl || "";
+    var host = $("aiModels");
+    host.innerHTML = "";
+    PRESET_MODELS.forEach(function (m) {
+      var d = document.createElement("div");
+      d.className = "ai-model" + (state.settings.modelId === m.id ? " on" : "");
+      d.innerHTML = '<img src="' + escapeAttr(m.src) + '" alt=""><span>' + escapeHtml(m.name) + "</span>";
+      d.addEventListener("click", function () {
+        state.settings.modelId = m.id;
+        save();
+        renderAiPanel();
+      });
+      host.appendChild(d);
+    });
+  }
+
+  function makeTryonBtn(c) {
+    var b = document.createElement("button");
+    b.className = "tryon-btn";
+    b.textContent = "🧍 Obleč na modela";
+    b.addEventListener("click", function (e) { e.stopPropagation(); openTryon(c); });
+    return b;
+  }
+
+  function openTryon(c) {
+    if (!state.settings.proxyUrl) {
+      toast("Najprv nastav adresu proxy v sekcii „AI skúšobňa“.");
+      var ap = $("aiPanel");
+      if (ap) { ap.open = true; ap.scrollIntoView({ behavior: "smooth" }); }
+      return;
+    }
+    var model = currentModel();
+    var key = model.id + "|" + c.key;
+    var body = $("tryonBody");
+    $("tryonModal").hidden = false;
+
+    if (tryonCache[key]) { showTryonResult(body, tryonCache[key], model, c); return; }
+
+    var srcs = c.dress ? [c.dress.src] : [c.top.src, c.bottom.src];
+    body.innerHTML =
+      '<div class="tryon-srcs">' +
+      srcs.map(function (s) { return s ? '<img src="' + escapeAttr(s) + '">' : ""; }).join("") +
+      "</div>" +
+      '<div class="tryon-loading"><div class="spinner"></div>AI oblieka outfit na model…</div>';
+    generateTryon(c, model, key, body);
+  }
+
+  function generateTryon(c, model, key, body) {
+    var payload = { model: model.src };
+    if (c.dress) payload.dress = c.dress.src;
+    else { payload.top = c.top.src; payload.bottom = c.bottom.src; }
+
+    fetch(state.settings.proxyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.j || !res.j.image) {
+          throw new Error(res.j && res.j.error ? res.j.error : "Proxy nevrátil obrázok.");
+        }
+        tryonCache[key] = res.j.image;
+        showTryonResult(body, res.j.image, model, c);
+      })
+      .catch(function (err) {
+        body.innerHTML =
+          '<div class="tryon-loading">⚠️ ' + escapeHtml(err.message || "Generovanie zlyhalo.") +
+          '<br><br><button class="btn secondary" id="tryonRetry">Skúsiť znova</button></div>';
+        var rb = $("tryonRetry");
+        if (rb) rb.addEventListener("click", function () { openTryon(c); });
+      });
+  }
+
+  function showTryonResult(body, image, model, c) {
+    var name = c.dress
+      ? (c.dress.name || "šaty")
+      : ((c.top.name || c.top.cat) + " + " + (c.bottom.name || c.bottom.cat));
+    body.innerHTML =
+      '<div class="tryon-result"><img src="' + escapeAttr(image) + '" alt="outfit na modelovi"></div>' +
+      '<p class="hint">' + escapeHtml(name) + ' na modelovi „' + escapeHtml(model.name) + '“.</p>' +
+      '<div style="display:flex;gap:10px;margin-top:12px">' +
+      '<a class="btn" id="tryonSave" download="outfit.jpg">⬇ Uložiť</a>' +
+      '<button class="btn secondary" id="tryonRegen">🔄 Znova</button></div>';
+    var sv = $("tryonSave"); if (sv) sv.href = image;
+    var rg = $("tryonRegen");
+    if (rg) rg.addEventListener("click", function () { delete tryonCache[model.id + "|" + c.key]; openTryon(c); });
+  }
+
   function refreshOutfitsTab() {
+    renderAiPanel();
     renderStats();
     renderOOTD();
     renderOutfits();
@@ -1119,6 +1288,13 @@
   });
   $("filterFav").addEventListener("change", refreshOutfitsTab);
   $("searchCloset").addEventListener("input", renderCloset);
+
+  $("proxyUrl").addEventListener("input", function () {
+    state.settings.proxyUrl = this.value.trim();
+    save();
+  });
+  $("tryonClose").addEventListener("click", function () { $("tryonModal").hidden = true; });
+  $("tryonModal").addEventListener("click", function (e) { if (e.target === this) this.hidden = true; });
 
   /* ---------- taby ---------- */
 
