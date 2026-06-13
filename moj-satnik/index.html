@@ -313,6 +313,60 @@
   }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+  /* --- vyhľadávanie v šatníku --- */
+  .search-bar { margin: 4px 0 18px; }
+
+  /* --- výber štítkov (sezóna / príležitosť) --- */
+  .tagrow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: center; }
+  .tagrow .lbl { width: 100%; font-size: .8rem; color: var(--muted); margin-bottom: 2px; }
+  .tag {
+    border: 1px solid var(--line); background: #2a2238; color: var(--muted);
+    padding: 6px 13px; border-radius: 999px; font-size: .82rem; cursor: pointer;
+    user-select: none; transition: all .12s;
+  }
+  .tag.on { background: var(--accent-soft); color: #d9ccff; border-color: var(--accent); }
+
+  /* --- mini štítky na kartách --- */
+  .mini-tags { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .mini-tags span { font-size: .66rem; color: var(--muted); background: #2a2238; border: 1px solid var(--line); padding: 2px 7px; border-radius: 999px; }
+
+  /* --- tlačidlo úpravy na karte --- */
+  .item-card .edit {
+    position: absolute; top: 8px; right: 44px; border: none; background: rgba(13,11,18,.65);
+    color: var(--ink); width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+    font-size: .9rem; box-shadow: var(--shadow);
+  }
+  .item-card .edit:hover { background: var(--accent); color: #fff; }
+
+  /* --- štatistiky --- */
+  .stats { display: flex; gap: 22px; flex-wrap: wrap; margin: 2px 0 20px; color: var(--muted); font-size: .85rem; }
+  .stats .s { display: flex; flex-direction: column; gap: 1px; }
+  .stats b { color: var(--ink); font-weight: 700; font-size: 1.25rem; }
+
+  /* --- Outfit dňa --- */
+  .ootd { margin-bottom: 26px; }
+  .ootd-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .ootd-head h2 { margin: 0; font-size: 1.15rem; }
+  .ootd-card {
+    display: flex; background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+    position: relative; max-width: 540px;
+  }
+  .ootd-card .imgs { display: flex; flex: 0 0 auto; }
+  .ootd-card img { width: 150px; height: 220px; object-fit: cover; background: #2a2238; display: block; }
+  .ootd-card img + img { border-left: 1px solid var(--line); }
+  .ootd-card.single img { width: 200px; height: 290px; }
+  .ootd-card .body { padding: 18px; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+  .ootd-card .body .t { font-size: 1.02rem; line-height: 1.55; }
+  .ootd-card .body .t b { color: var(--ink); }
+  .ootd-card .body .sub { color: var(--muted); font-size: .85rem; }
+
+  @media (max-width: 520px) {
+    .ootd-card { flex-direction: column; max-width: none; }
+    .ootd-card .imgs { width: 100%; }
+    .ootd-card img, .ootd-card.single img { width: 50%; height: 220px; flex: 1; }
+  }
+
   /* rešpektuj výrez/notch na iPhone keď beží ako appka */
   header { padding-top: calc(28px + env(safe-area-inset-top)); }
   main { padding-left: calc(16px + env(safe-area-inset-left)); padding-right: calc(16px + env(safe-area-inset-right)); }
@@ -343,7 +397,7 @@
   <section id="tabCloset" class="tab active">
 
     <div class="panel">
-      <h2>Pridať kus oblečenia</h2>
+      <h2 id="formTitle">Pridať kus oblečenia</h2>
       <div class="form-grid">
         <label class="field">Názov (voliteľné)
           <input type="text" id="inName" placeholder="napr. biele tričko Zara">
@@ -378,6 +432,9 @@
         </label>
       </div>
 
+      <div class="tagrow" id="seasonPick"><span class="lbl">Sezóna (voliteľné)</span></div>
+      <div class="tagrow" id="occasionPick"><span class="lbl">Príležitosť (voliteľné)</span></div>
+
       <div style="margin-top:14px">
         <label class="file-drop" id="dropZone">
           📷 …alebo klikni / pretiahni sem fotky oblečenia (môže byť aj viac naraz)
@@ -387,6 +444,7 @@
 
       <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
         <button class="btn" id="btnAdd">Pridať do šatníka</button>
+        <button class="btn secondary" id="btnCancelEdit" style="display:none">Zrušiť úpravu</button>
         <button class="btn secondary" id="btnExport">⬇ Záloha (export)</button>
         <label class="btn secondary" style="display:inline-block">
           ⬆ Obnoviť (import)
@@ -402,15 +460,34 @@
       </p>
     </div>
 
+    <div class="search-bar">
+      <input type="text" id="searchCloset" placeholder="🔎 Hľadať v šatníku (názov alebo kategória)…">
+    </div>
     <div id="closetList"></div>
   </section>
 
   <!-- ===================== OUTFITY ===================== -->
   <section id="tabOutfits" class="tab">
+    <div class="stats" id="outfitStats"></div>
+    <div class="ootd" id="ootd"></div>
     <div class="toolbar">
       <button class="btn secondary" id="btnShuffle">🔀 Zamiešať</button>
       <select id="filterTop"><option value="">Všetky vrchné diely</option></select>
       <select id="filterBottom"><option value="">Všetky spodné diely</option></select>
+      <select id="filterSeason">
+        <option value="">Každá sezóna</option>
+        <option value="jar">jar</option>
+        <option value="leto">leto</option>
+        <option value="jeseň">jeseň</option>
+        <option value="zima">zima</option>
+      </select>
+      <select id="filterOccasion">
+        <option value="">Každá príležitosť</option>
+        <option value="voľný čas">voľný čas</option>
+        <option value="práca">práca</option>
+        <option value="šport">šport</option>
+        <option value="večer">večer</option>
+      </select>
       <label class="check"><input type="checkbox" id="filterFav"> len obľúbené ❤</label>
       <span class="count-badge" id="outfitCount"></span>
     </div>
@@ -437,8 +514,15 @@
     dress:  "Šaty"
   };
 
+  var SEASONS   = ["jar", "leto", "jeseň", "zima"];
+  var OCCASIONS = ["voľný čas", "práca", "šport", "večer"];
+
   var state = load();
   var shuffleSeed = null; // null = pôvodné poradie
+  var editingId = null;
+  var ootdSeed = Math.floor(Math.random() * 1e9);
+
+  function $(id) { return document.getElementById(id); }
 
   function load() {
     try {
@@ -480,7 +564,34 @@
     toast._t = setTimeout(function () { el.classList.remove("show"); }, 2600);
   }
 
-  /* ---------- pridávanie ---------- */
+  /* ---------- výber štítkov (sezóna / príležitosť) ---------- */
+
+  function buildPicker(id, values) {
+    var c = $(id);
+    values.forEach(function (v) {
+      var t = document.createElement("span");
+      t.className = "tag";
+      t.textContent = v;
+      t.setAttribute("data-val", v);
+      t.addEventListener("click", function () { t.classList.toggle("on"); });
+      c.appendChild(t);
+    });
+  }
+  function getPicked(id) {
+    return Array.prototype.map.call($(id).querySelectorAll(".tag.on"), function (t) {
+      return t.getAttribute("data-val");
+    });
+  }
+  function setPicked(id, arr) {
+    arr = arr || [];
+    Array.prototype.forEach.call($(id).querySelectorAll(".tag"), function (t) {
+      t.classList.toggle("on", arr.indexOf(t.getAttribute("data-val")) !== -1);
+    });
+  }
+  buildPicker("seasonPick", SEASONS);
+  buildPicker("occasionPick", OCCASIONS);
+
+  /* ---------- pridávanie / úprava ---------- */
 
   function resizeImage(file) {
     return new Promise(function (resolve, reject) {
@@ -504,25 +615,27 @@
     });
   }
 
-  function addItem(src, name, cat, link) {
+  function addItem(src, name, cat, link, seasons, occasions) {
     state.items.push({
       id: uid(),
       name: name || "",
       cat: cat,
       group: groupOf(cat),
       src: src || "",
-      link: link || ""
+      link: link || "",
+      seasons: seasons || [],
+      occasions: occasions || []
     });
   }
 
   var pendingFiles = [];
+  var dropZone = $("dropZone");
 
-  document.getElementById("inFile").addEventListener("change", function (e) {
+  $("inFile").addEventListener("change", function (e) {
     pendingFiles = Array.prototype.slice.call(e.target.files);
     updateDropLabel();
   });
 
-  var dropZone = document.getElementById("dropZone");
   ["dragover", "dragenter"].forEach(function (ev) {
     dropZone.addEventListener(ev, function (e) { e.preventDefault(); dropZone.classList.add("drag"); });
   });
@@ -539,16 +652,75 @@
   function updateDropLabel() {
     var n = pendingFiles.length;
     dropZone.childNodes[0].textContent = n
-      ? "📷 Vybraté fotky: " + n + " – klikni na „Pridať do šatníka“ "
+      ? "📷 Vybraté fotky: " + n + " – klikni na tlačidlo nižšie "
       : "📷 …alebo klikni / pretiahni sem fotky oblečenia (môže byť aj viac naraz) ";
   }
 
-  document.getElementById("btnAdd").addEventListener("click", function () {
-    var name = document.getElementById("inName").value.trim();
-    var cat  = document.getElementById("inCat").value;
-    var url  = document.getElementById("inImgUrl").value.trim();
-    var link = document.getElementById("inLink").value.trim();
+  function resetForm() {
+    editingId = null;
+    $("inName").value = "";
+    $("inImgUrl").value = "";
+    $("inLink").value = "";
+    $("inFile").value = "";
+    pendingFiles = [];
+    updateDropLabel();
+    setPicked("seasonPick", []);
+    setPicked("occasionPick", []);
+    $("formTitle").textContent = "Pridať kus oblečenia";
+    $("btnAdd").textContent = "Pridať do šatníka";
+    $("btnCancelEdit").style.display = "none";
+  }
 
+  function enterEdit(item) {
+    editingId = item.id;
+    $("inName").value = item.name || "";
+    $("inCat").value = item.cat;
+    $("inImgUrl").value = "";
+    $("inLink").value = item.link || "";
+    $("inFile").value = "";
+    pendingFiles = [];
+    updateDropLabel();
+    setPicked("seasonPick", item.seasons || []);
+    setPicked("occasionPick", item.occasions || []);
+    $("formTitle").textContent = "Upraviť kus oblečenia";
+    $("btnAdd").textContent = "Uložiť zmeny";
+    $("btnCancelEdit").style.display = "";
+    showTab("closet");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    toast("Upravuješ kus – zmeň čo treba a daj „Uložiť zmeny“. Fotku meníš len ak vyberieš novú.");
+  }
+
+  $("btnCancelEdit").addEventListener("click", function () { resetForm(); toast("Úprava zrušená."); });
+
+  $("btnAdd").addEventListener("click", function () {
+    var name = $("inName").value.trim();
+    var cat  = $("inCat").value;
+    var url  = $("inImgUrl").value.trim();
+    var link = $("inLink").value.trim();
+    var seasons = getPicked("seasonPick");
+    var occasions = getPicked("occasionPick");
+
+    // --- režim úpravy ---
+    if (editingId) {
+      var item = null;
+      for (var k = 0; k < state.items.length; k++) {
+        if (state.items[k].id === editingId) { item = state.items[k]; break; }
+      }
+      if (!item) { resetForm(); return; }
+      item.name = name; item.cat = cat; item.group = groupOf(cat);
+      item.link = link; item.seasons = seasons; item.occasions = occasions;
+      var finishEdit = function () { save(); renderAll(); resetForm(); toast("Zmeny uložené ✔"); };
+      if (pendingFiles.length) {
+        resizeImage(pendingFiles[0]).then(function (d) { item.src = d; finishEdit(); })
+          .catch(function (e) { toast(e.message || "Chyba pri spracovaní fotky."); });
+      } else {
+        if (url) item.src = url;
+        finishEdit();
+      }
+      return;
+    }
+
+    // --- režim pridávania ---
     if (!url && !pendingFiles.length && !link) {
       toast("Pridaj fotku, odkaz na obrázok alebo aspoň odkaz na produkt.");
       return;
@@ -558,23 +730,18 @@
     if (pendingFiles.length) {
       pendingFiles.forEach(function (f, i) {
         jobs.push(resizeImage(f).then(function (dataUrl) {
-          addItem(dataUrl, name ? (pendingFiles.length > 1 ? name + " " + (i + 1) : name) : "", cat, link);
+          addItem(dataUrl, name ? (pendingFiles.length > 1 ? name + " " + (i + 1) : name) : "", cat, link, seasons, occasions);
         }));
       });
     } else {
-      addItem(url, name, cat, link);
+      addItem(url, name, cat, link, seasons, occasions);
       jobs.push(Promise.resolve());
     }
 
     Promise.all(jobs).then(function () {
       save();
       renderAll();
-      document.getElementById("inName").value = "";
-      document.getElementById("inImgUrl").value = "";
-      document.getElementById("inLink").value = "";
-      document.getElementById("inFile").value = "";
-      pendingFiles = [];
-      updateDropLabel();
+      resetForm();
       toast("Pridané do šatníka ✔");
     }).catch(function (err) {
       toast(err.message || "Niečo sa pokazilo pri spracovaní fotky.");
@@ -643,8 +810,54 @@
   }
   function escapeAttr(s) { return escapeHtml(s); }
 
+  function matchSearch(it, q) {
+    if (!q) return true;
+    return (it.name || "").toLowerCase().indexOf(q) !== -1 ||
+           (it.cat  || "").toLowerCase().indexOf(q) !== -1;
+  }
+
+  function makeItemCard(item) {
+    var card = document.createElement("div");
+    card.className = "item-card";
+    card.appendChild(imgOrFallback(item));
+
+    var tags = (item.seasons || []).concat(item.occasions || []);
+    var meta = document.createElement("div");
+    meta.className = "meta";
+    meta.innerHTML =
+      '<div class="name">' + escapeHtml(item.name || "(bez názvu)") + "</div>" +
+      '<span class="chip">' + escapeHtml(item.cat) + "</span>" +
+      (item.link ? '<br><a class="link-out" href="' + escapeAttr(item.link) + '" target="_blank" rel="noopener">e-shop ↗</a>' : "") +
+      (tags.length ? '<div class="mini-tags">' + tags.map(function (t) { return "<span>" + escapeHtml(t) + "</span>"; }).join("") + "</div>" : "");
+    card.appendChild(meta);
+
+    var edit = document.createElement("button");
+    edit.className = "edit";
+    edit.title = "Upraviť";
+    edit.textContent = "✎";
+    edit.addEventListener("click", function () { enterEdit(item); });
+    card.appendChild(edit);
+
+    var del = document.createElement("button");
+    del.className = "del";
+    del.title = "Zmazať";
+    del.textContent = "✕";
+    del.addEventListener("click", function () {
+      if (!confirm("Zmazať „" + (item.name || item.cat) + "“ zo šatníka?")) return;
+      state.items = state.items.filter(function (it) { return it.id !== item.id; });
+      Object.keys(state.favs).forEach(function (k) {
+        if (k.indexOf(item.id) !== -1) delete state.favs[k];
+      });
+      if (editingId === item.id) resetForm();
+      save();
+      renderAll();
+    });
+    card.appendChild(del);
+    return card;
+  }
+
   function renderCloset() {
-    var root = document.getElementById("closetList");
+    var root = $("closetList");
     root.innerHTML = "";
 
     if (!state.items.length) {
@@ -652,9 +865,13 @@
       return;
     }
 
+    var q = ($("searchCloset").value || "").trim().toLowerCase();
+    var shown = 0;
+
     ["top", "bottom", "dress"].forEach(function (group) {
-      var items = state.items.filter(function (it) { return it.group === group; });
+      var items = state.items.filter(function (it) { return it.group === group && matchSearch(it, q); });
       if (!items.length) return;
+      shown += items.length;
 
       var title = document.createElement("div");
       title.className = "group-title";
@@ -663,38 +880,13 @@
 
       var grid = document.createElement("div");
       grid.className = "grid";
-      items.forEach(function (item) {
-        var card = document.createElement("div");
-        card.className = "item-card";
-        card.appendChild(imgOrFallback(item));
-
-        var meta = document.createElement("div");
-        meta.className = "meta";
-        meta.innerHTML =
-          '<div class="name">' + escapeHtml(item.name || "(bez názvu)") + "</div>" +
-          '<span class="chip">' + escapeHtml(item.cat) + "</span>" +
-          (item.link ? '<br><a class="link-out" href="' + escapeAttr(item.link) + '" target="_blank" rel="noopener">e-shop ↗</a>' : "");
-        card.appendChild(meta);
-
-        var del = document.createElement("button");
-        del.className = "del";
-        del.title = "Zmazať";
-        del.textContent = "✕";
-        del.addEventListener("click", function () {
-          if (!confirm("Zmazať „" + (item.name || item.cat) + "“ zo šatníka?")) return;
-          state.items = state.items.filter(function (it) { return it.id !== item.id; });
-          Object.keys(state.favs).forEach(function (k) {
-            if (k.indexOf(item.id) !== -1) delete state.favs[k];
-          });
-          save();
-          renderAll();
-        });
-        card.appendChild(del);
-
-        grid.appendChild(card);
-      });
+      items.forEach(function (item) { grid.appendChild(makeItemCard(item)); });
       root.appendChild(grid);
     });
+
+    if (!shown) {
+      root.innerHTML = '<div class="empty">Hľadaniu „' + escapeHtml(q) + "“ nezodpovedá žiadny kus.</div>";
+    }
   }
 
   /* ---------- outfity ---------- */
@@ -749,27 +941,155 @@
     if (sel.value !== current) sel.value = "";
   }
 
+  function currentFilters() {
+    return {
+      fTop: $("filterTop").value,
+      fBottom: $("filterBottom").value,
+      fSeason: $("filterSeason").value,
+      fOcc: $("filterOccasion").value,
+      onlyFav: $("filterFav").checked
+    };
+  }
+
+  // outfit prejde štítkovým filtrom, ak ho obsahuje každý kus s daným štítkom
+  // (kus bez štítkov sa berie ako "hodí sa vždy")
+  function tagPass(c, key, val) {
+    if (!val) return true;
+    var pieces = c.dress ? [c.dress] : [c.top, c.bottom];
+    return pieces.every(function (p) {
+      var t = p[key] || [];
+      return t.length === 0 || t.indexOf(val) !== -1;
+    });
+  }
+
+  function comboPasses(c, f) {
+    if (f.fTop && (!c.top || c.top.id !== f.fTop)) return false;
+    if (f.fBottom && (!c.bottom || c.bottom.id !== f.fBottom)) return false;
+    if (f.onlyFav && !state.favs[c.key]) return false;
+    if (!tagPass(c, "seasons", f.fSeason)) return false;
+    if (!tagPass(c, "occasions", f.fOcc)) return false;
+    return true;
+  }
+
+  function makeFavBtn(c) {
+    var fav = document.createElement("button");
+    fav.className = "fav-btn" + (state.favs[c.key] ? " on" : "");
+    fav.textContent = "❤";
+    fav.title = "Obľúbený outfit";
+    fav.addEventListener("click", function () {
+      if (state.favs[c.key]) delete state.favs[c.key];
+      else state.favs[c.key] = true;
+      save();
+      refreshOutfitsTab();
+    });
+    return fav;
+  }
+
+  function makeOutfitCard(c) {
+    var card = document.createElement("div");
+    card.className = "outfit-card" + (c.dress ? " single" : "");
+
+    var imgs = document.createElement("div");
+    imgs.className = "imgs";
+    if (c.dress) {
+      imgs.appendChild(imgOrFallback(c.dress));
+    } else {
+      imgs.appendChild(imgOrFallback(c.top));
+      imgs.appendChild(imgOrFallback(c.bottom));
+    }
+    card.appendChild(imgs);
+
+    var labels = document.createElement("div");
+    labels.className = "labels";
+    if (c.dress) {
+      labels.innerHTML = "<b>" + escapeHtml(c.dress.name || c.dress.cat) + "</b> · šaty";
+    } else {
+      labels.innerHTML =
+        "<b>" + escapeHtml(c.top.name || c.top.cat) + "</b> · " + escapeHtml(c.top.cat) + "<br>" +
+        "<b>" + escapeHtml(c.bottom.name || c.bottom.cat) + "</b> · " + escapeHtml(c.bottom.cat);
+    }
+    card.appendChild(labels);
+    card.appendChild(makeFavBtn(c));
+    return card;
+  }
+
+  function renderStats() {
+    var combos = buildCombos().length;
+    $("outfitStats").innerHTML =
+      '<div class="s"><b>' + state.items.length + "</b> kúskov v šatníku</div>" +
+      '<div class="s"><b>' + combos + "</b> možných outfitov</div>" +
+      '<div class="s"><b>' + Object.keys(state.favs).length + "</b> obľúbených ❤</div>";
+  }
+
+  function renderOOTD() {
+    var host = $("ootd");
+    host.innerHTML = "";
+
+    var head = document.createElement("div");
+    head.className = "ootd-head";
+    var h = document.createElement("h2");
+    h.textContent = "✨ Outfit dňa";
+    head.appendChild(h);
+    var btn = document.createElement("button");
+    btn.className = "btn";
+    btn.textContent = "🎲 Prekvap ma";
+    btn.addEventListener("click", function () { ootdSeed = Math.floor(Math.random() * 1e9); renderOOTD(); });
+    head.appendChild(btn);
+    host.appendChild(head);
+
+    var f = currentFilters();
+    var pool = buildCombos().filter(function (c) { return comboPasses(c, f); });
+    if (!pool.length) {
+      var e = document.createElement("div");
+      e.className = "empty";
+      e.style.padding = "26px";
+      e.textContent = "Zatiaľ tu nie je čo ukázať – pridaj viac oblečenia (alebo uvoľni filtre).";
+      host.appendChild(e);
+      return;
+    }
+
+    var c = pool[Math.abs(ootdSeed) % pool.length];
+    var card = document.createElement("div");
+    card.className = "ootd-card" + (c.dress ? " single" : "");
+
+    var imgs = document.createElement("div");
+    imgs.className = "imgs";
+    if (c.dress) {
+      imgs.appendChild(imgOrFallback(c.dress));
+    } else {
+      imgs.appendChild(imgOrFallback(c.top));
+      imgs.appendChild(imgOrFallback(c.bottom));
+    }
+    card.appendChild(imgs);
+
+    var body = document.createElement("div");
+    body.className = "body";
+    var t = document.createElement("div");
+    t.className = "t";
+    if (c.dress) {
+      t.innerHTML = "<b>" + escapeHtml(c.dress.name || c.dress.cat) + "</b><br><span class='sub'>šaty</span>";
+    } else {
+      t.innerHTML =
+        "<b>" + escapeHtml(c.top.name || c.top.cat) + "</b> <span class='sub'>(" + escapeHtml(c.top.cat) + ")</span><br>" +
+        "+ <b>" + escapeHtml(c.bottom.name || c.bottom.cat) + "</b> <span class='sub'>(" + escapeHtml(c.bottom.cat) + ")</span>";
+    }
+    body.appendChild(t);
+    card.appendChild(body);
+    card.appendChild(makeFavBtn(c));
+    host.appendChild(card);
+  }
+
   function renderOutfits() {
-    var root = document.getElementById("outfitList");
+    var root = $("outfitList");
     root.innerHTML = "";
 
     var combos = buildCombos();
-    var fTop = document.getElementById("filterTop").value;
-    var fBottom = document.getElementById("filterBottom").value;
-    var onlyFav = document.getElementById("filterFav").checked;
-
-    var filtered = combos.filter(function (c) {
-      if (fTop && (!c.top || c.top.id !== fTop)) return false;
-      if (fBottom && (!c.bottom || c.bottom.id !== fBottom)) return false;
-      if (onlyFav && !state.favs[c.key]) return false;
-      return true;
-    });
-
+    var f = currentFilters();
+    var filtered = combos.filter(function (c) { return comboPasses(c, f); });
     if (shuffleSeed !== null) filtered = seededShuffle(filtered, shuffleSeed);
 
-    var countEl = document.getElementById("outfitCount");
-    countEl.textContent = filtered.length + " z " + combos.length + " kombinácií";
-    document.getElementById("outfitCountNav").textContent = combos.length ? "(" + combos.length + ")" : "";
+    $("outfitCount").textContent = filtered.length + " z " + combos.length + " kombinácií";
+    $("outfitCountNav").textContent = combos.length ? "(" + combos.length + ")" : "";
 
     if (!combos.length) {
       root.innerHTML = '<div class="empty" style="grid-column:1/-1">Zatiaľ žiadne outfity.<br>' +
@@ -781,54 +1101,24 @@
       return;
     }
 
-    filtered.forEach(function (c) {
-      var card = document.createElement("div");
-      card.className = "outfit-card" + (c.dress ? " single" : "");
-
-      var imgs = document.createElement("div");
-      imgs.className = "imgs";
-      if (c.dress) {
-        imgs.appendChild(imgOrFallback(c.dress));
-      } else {
-        imgs.appendChild(imgOrFallback(c.top));
-        imgs.appendChild(imgOrFallback(c.bottom));
-      }
-      card.appendChild(imgs);
-
-      var labels = document.createElement("div");
-      labels.className = "labels";
-      if (c.dress) {
-        labels.innerHTML = "<b>" + escapeHtml(c.dress.name || c.dress.cat) + "</b> · šaty";
-      } else {
-        labels.innerHTML =
-          "<b>" + escapeHtml(c.top.name || c.top.cat) + "</b> · " + escapeHtml(c.top.cat) + "<br>" +
-          "<b>" + escapeHtml(c.bottom.name || c.bottom.cat) + "</b> · " + escapeHtml(c.bottom.cat);
-      }
-      card.appendChild(labels);
-
-      var fav = document.createElement("button");
-      fav.className = "fav-btn" + (state.favs[c.key] ? " on" : "");
-      fav.textContent = "❤";
-      fav.title = "Obľúbený outfit";
-      fav.addEventListener("click", function () {
-        if (state.favs[c.key]) delete state.favs[c.key];
-        else state.favs[c.key] = true;
-        save();
-        renderOutfits();
-      });
-      card.appendChild(fav);
-
-      root.appendChild(card);
-    });
+    filtered.forEach(function (c) { root.appendChild(makeOutfitCard(c)); });
   }
 
-  document.getElementById("btnShuffle").addEventListener("click", function () {
+  function refreshOutfitsTab() {
+    renderStats();
+    renderOOTD();
+    renderOutfits();
+  }
+
+  $("btnShuffle").addEventListener("click", function () {
     shuffleSeed = Math.floor(Math.random() * 233280);
     renderOutfits();
   });
-  document.getElementById("filterTop").addEventListener("change", renderOutfits);
-  document.getElementById("filterBottom").addEventListener("change", renderOutfits);
-  document.getElementById("filterFav").addEventListener("change", renderOutfits);
+  ["filterTop", "filterBottom", "filterSeason", "filterOccasion"].forEach(function (id) {
+    $(id).addEventListener("change", refreshOutfitsTab);
+  });
+  $("filterFav").addEventListener("change", refreshOutfitsTab);
+  $("searchCloset").addEventListener("input", renderCloset);
 
   /* ---------- taby ---------- */
 
@@ -844,7 +1134,7 @@
   function renderAll() {
     renderCloset();
     renderFilters();
-    renderOutfits();
+    refreshOutfitsTab();
   }
 
   renderAll();

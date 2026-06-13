@@ -13,8 +13,12 @@ a ona ti automaticky poskladá **všetky kombinácie outfitov** ako obrázkové 
   - Šaty (počítajú sa ako samostatný celý outfit)
 - **Outfity** – každý vrchný diel sa skombinuje s každým spodným dielom,
   šaty sa zobrazia ako samostatné outfity.
+- **Outfit dňa** – tip na oblečenie jedným klikom („Prekvap ma“).
+- **Štítky** sezóna a príležitosť + filtrovanie outfitov podľa nich.
+- **Úprava a vyhľadávanie** – kusy môžeš upravovať a hľadať v šatníku.
 - **Obľúbené** ❤ – outfity, ktoré sa ti páčia, si označíš a vyfiltruješ.
-- **Filtre a miešanie** – filtrovanie podľa konkrétneho kusu, náhodné zamiešanie poradia.
+- **Filtre a miešanie** – filtrovanie podľa kusu/sezóny/príležitosti, náhodné miešanie.
+- **Štatistiky** – počet kúskov, možných outfitov a obľúbených.
 - **Záloha** – export/import šatníka do JSON súboru.
 
 ## Ako to spustiť / nainštalovať
