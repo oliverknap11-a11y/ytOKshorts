@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Šatník – kombinátor outfitov</title>
+
+<!-- PWA / inštalácia na plochu (zdarma, bez App Store) + natívny iOS obal cez Capacitor -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#17141f">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Môj šatník">
+
+<style>
+  :root {
+    --bg: #17141f;
+    --bg2: #1f1a2b;
+    --card: #221c30;
+    --ink: #f3eefb;
+    --muted: #a99cbe;
+    --accent: #8b5cff;
+    --accent2: #ff4f9a;
+    --accent-soft: rgba(139, 92, 255, .18);
+    --line: #342c46;
+    --fav: #ff5d9e;
+    --radius: 16px;
+    --shadow: 0 8px 26px rgba(0, 0, 0, .38);
+    --grad: linear-gradient(135deg, #8b5cff, #ff4f9a);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 15% -5%, rgba(139, 92, 255, .22), transparent 60%),
+      radial-gradient(1000px 600px at 100% 0%, rgba(255, 79, 154, .16), transparent 55%),
+      var(--bg);
+    background-attachment: fixed;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  header {
+    text-align: center;
+    padding: 28px 16px 10px;
+  }
+  header h1 {
+    margin: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 700;
+    font-size: 2.2rem;
+    letter-spacing: .01em;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  header p { margin: 8px 0 0; color: var(--muted); font-size: .95rem; }
+
+  nav {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 18px 16px;
+    position: sticky;
+    top: 0;
+    background: linear-gradient(var(--bg) 85%, transparent);
+    z-index: 10;
+  }
+  nav button {
+    border: 1px solid var(--line);
+    background: rgba(34, 28, 48, .7);
+    backdrop-filter: blur(6px);
+    color: var(--ink);
+    padding: 10px 22px;
+    border-radius: 999px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  nav button.active {
+    background: var(--grad);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 6px 18px rgba(139, 92, 255, .35);
+  }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 0 16px 80px; }
+  section.tab { display: none; }
+  section.tab.active { display: block; }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .panel h2 { margin: 0 0 14px; font-size: 1.15rem; }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  label.field { display: flex; flex-direction: column; gap: 6px; font-size: .85rem; color: var(--muted); }
+  input[type="text"], input[type="url"], select {
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: .95rem;
+    background: #2a2238;
+    color: var(--ink);
+    width: 100%;
+  }
+  select option { background: #2a2238; color: var(--ink); }
+  ::placeholder { color: #7d7390; }
+  input:focus, select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+
+  .file-drop {
+    border: 2px dashed var(--line);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    color: var(--muted);
+    font-size: .9rem;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .file-drop:hover, .file-drop.drag { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+  .file-drop input { display: none; }
+
+  .hint { font-size: .8rem; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+
+  .btn {
+    border: none;
+    background: var(--grad);
+    color: #fff;
+    padding: 11px 24px;
+    border-radius: 10px;
+    font-size: .98rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter .15s, transform .1s;
+    box-shadow: 0 6px 18px rgba(139, 92, 255, .3);
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:active { transform: translateY(1px); }
+  .btn.secondary {
+    background: var(--card);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    box-shadow: none;
+  }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+  .toolbar select { width: auto; min-width: 160px; }
+  .toolbar .check { display: flex; align-items: center; gap: 6px; font-size: .9rem; color: var(--muted); cursor: pointer; }
+  .count-badge { margin-left: auto; color: var(--muted); font-size: .9rem; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 16px;
+  }
+
+  .item-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .item-card img {
+    width: 100%;
+    height: 190px;
+    object-fit: cover;
+    background: #2a2238;
+    display: block;
+  }
+  .item-card .img-fail {
+    width: 100%;
+    height: 190px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 6px;
+    background: #2a2238;
+    color: var(--muted);
+    font-size: .85rem;
+    text-align: center;
+    padding: 10px;
+  }
+  .item-card .meta { padding: 10px 12px; }
+  .item-card .name { font-size: .92rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item-card .chip {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: .72rem;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 3px 9px;
+    border-radius: 999px;
+  }
+  .item-card .link-out { font-size: .78rem; margin-top: 6px; display: inline-block; color: var(--accent); text-decoration: none; }
+  .item-card .del {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    border: none;
+    background: rgba(13,11,18,.65);
+    color: var(--ink);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: .95rem;
+    box-shadow: var(--shadow);
+  }
+  .item-card .del:hover { background: var(--fav); color: #fff; }
+
+  .group-title {
+    margin: 26px 0 12px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--ink);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
+  }
+
+  .outfit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 18px;
+  }
+  .outfit-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .outfit-card .imgs { display: flex; flex-direction: column; }
+  .outfit-card img {
+    width: 100%;
+    height: 170px;
+    object-fit: cover;
+    background: #2a2238;
+    display: block;
+  }
+  .outfit-card img + img { border-top: 1px solid var(--line); }
+  .outfit-card.single img { height: 340px; }
+  .outfit-card .labels {
+    padding: 10px 12px;
+    font-size: .82rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .outfit-card .labels b { color: var(--ink); font-weight: 600; }
+  .outfit-card .fav-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    border: none;
+    background: rgba(13,11,18,.65);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.05rem;
+    box-shadow: var(--shadow);
+    color: #8a7da0;
+  }
+  .outfit-card .fav-btn.on { color: var(--fav); }
+
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 50px 20px;
+    font-size: .95rem;
+    line-height: 1.7;
+  }
+
+  #toast {
+    position: fixed;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #0e0b16;
+    color: #fff;
+    padding: 11px 22px;
+    border-radius: 999px;
+    font-size: .9rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: all .25s;
+    z-index: 50;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* --- vyhľadávanie v šatníku --- */
+  .search-bar { margin: 4px 0 18px; }
+
+  /* --- výber štítkov (sezóna / príležitosť) --- */
+  .tagrow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: center; }
+  .tagrow .lbl { width: 100%; font-size: .8rem; color: var(--muted); margin-bottom: 2px; }
+  .tag {
+    border: 1px solid var(--line); background: #2a2238; color: var(--muted);
+    padding: 6px 13px; border-radius: 999px; font-size: .82rem; cursor: pointer;
+    user-select: none; transition: all .12s;
+  }
+  .tag.on { background: var(--accent-soft); color: #d9ccff; border-color: var(--accent); }
+
+  /* --- mini štítky na kartách --- */
+  .mini-tags { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .mini-tags span { font-size: .66rem; color: var(--muted); background: #2a2238; border: 1px solid var(--line); padding: 2px 7px; border-radius: 999px; }
+
+  /* --- tlačidlo úpravy na karte --- */
+  .item-card .edit {
+    position: absolute; top: 8px; right: 44px; border: none; background: rgba(13,11,18,.65);
+    color: var(--ink); width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+    font-size: .9rem; box-shadow: var(--shadow);
+  }
+  .item-card .edit:hover { background: var(--accent); color: #fff; }
+
+  /* --- štatistiky --- */
+  .stats { display: flex; gap: 22px; flex-wrap: wrap; margin: 2px 0 20px; color: var(--muted); font-size: .85rem; }
+  .stats .s { display: flex; flex-direction: column; gap: 1px; }
+  .stats b { color: var(--ink); font-weight: 700; font-size: 1.25rem; }
+
+  /* --- Outfit dňa --- */
+  .ootd { margin-bottom: 26px; }
+  .ootd-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .ootd-head h2 { margin: 0; font-size: 1.15rem; }
+  .ootd-card {
+    display: flex; background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+    position: relative; max-width: 540px;
+  }
+  .ootd-card .imgs { display: flex; flex: 0 0 auto; }
+  .ootd-card img { width: 150px; height: 220px; object-fit: cover; background: #2a2238; display: block; }
+  .ootd-card img + img { border-left: 1px solid var(--line); }
+  .ootd-card.single img { width: 200px; height: 290px; }
+  .ootd-card .body { padding: 18px; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+  .ootd-card .body .t { font-size: 1.02rem; line-height: 1.55; }
+  .ootd-card .body .t b { color: var(--ink); }
+  .ootd-card .body .sub { color: var(--muted); font-size: .85rem; }
+
+  @media (max-width: 520px) {
+    .ootd-card { flex-direction: column; max-width: none; }
+    .ootd-card .imgs { width: 100%; }
+    .ootd-card img, .ootd-card.single img { width: 50%; height: 220px; flex: 1; }
+  }
+
+  /* rešpektuj výrez/notch na iPhone keď beží ako appka */
+  header { padding-top: calc(28px + env(safe-area-inset-top)); }
+  main { padding-left: calc(16px + env(safe-area-inset-left)); padding-right: calc(16px + env(safe-area-inset-right)); }
+
+  @media (max-width: 520px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    .outfit-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+    .outfit-card img { height: 140px; }
+    .outfit-card.single img { height: 280px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Môj šatník</h1>
+  <p>Pridaj oblečenie a nechaj si poskladať všetky kombinácie outfitov</p>
+</header>
+
+<nav>
+  <button id="tabBtnCloset" class="active">👗 Šatník</button>
+  <button id="tabBtnOutfits">✨ Outfity <span id="outfitCountNav"></span></button>
+</nav>
+
+<main>
+
+  <!-- ===================== ŠATNÍK ===================== -->
+  <section id="tabCloset" class="tab active">
+
+    <div class="panel">
+      <h2 id="formTitle">Pridať kus oblečenia</h2>
+      <div class="form-grid">
+        <label class="field">Názov (voliteľné)
+          <input type="text" id="inName" placeholder="napr. biele tričko Zara">
+        </label>
+        <label class="field">Kategória
+          <select id="inCat">
+            <optgroup label="Spodný diel">
+              <option value="nohavice">Nohavice</option>
+              <option value="rifle">Rifle</option>
+              <option value="sukňa">Sukňa</option>
+              <option value="skort">Skort</option>
+              <option value="kraťasy">Kraťasy</option>
+            </optgroup>
+            <optgroup label="Vrchný diel">
+              <option value="tričko">Tričko</option>
+              <option value="top">Top</option>
+              <option value="vesta">Vesta</option>
+              <option value="bunda">Bunda</option>
+              <option value="mikina">Mikina</option>
+              <option value="sako">Sako</option>
+            </optgroup>
+            <optgroup label="Celý outfit">
+              <option value="šaty">Šaty</option>
+            </optgroup>
+          </select>
+        </label>
+        <label class="field">Obrázok – odkaz (URL)
+          <input type="url" id="inImgUrl" placeholder="https://… (priamy odkaz na obrázok)">
+        </label>
+        <label class="field">Odkaz na produkt (voliteľné)
+          <input type="url" id="inLink" placeholder="https://… (stránka e-shopu)">
+        </label>
+      </div>
+
+      <div class="tagrow" id="seasonPick"><span class="lbl">Sezóna (voliteľné)</span></div>
+      <div class="tagrow" id="occasionPick"><span class="lbl">Príležitosť (voliteľné)</span></div>
+
+      <div style="margin-top:14px">
+        <label class="file-drop" id="dropZone">
+          📷 …alebo klikni / pretiahni sem fotky oblečenia (môže byť aj viac naraz)
+          <input type="file" id="inFile" accept="image/*" multiple>
+        </label>
+      </div>
+
+      <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn" id="btnAdd">Pridať do šatníka</button>
+        <button class="btn secondary" id="btnCancelEdit" style="display:none">Zrušiť úpravu</button>
+        <button class="btn secondary" id="btnExport">⬇ Záloha (export)</button>
+        <label class="btn secondary" style="display:inline-block">
+          ⬆ Obnoviť (import)
+          <input type="file" id="inImport" accept="application/json" style="display:none">
+        </label>
+      </div>
+
+      <p class="hint">
+        Tip: ak vkladáš odkaz z e-shopu, najlepšie funguje <b>priamy odkaz na obrázok</b>
+        (pravý klik na fotku → „Kopírovať adresu obrázka“). Bežný odkaz na stránku produktu sa
+        nedá zobraziť ako fotka – uloží sa aspoň ako klikateľný odkaz.
+        Všetko sa ukladá len v tvojom prehliadači.
+      </p>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" id="searchCloset" placeholder="🔎 Hľadať v šatníku (názov alebo kategória)…">
+    </div>
+    <div id="closetList"></div>
+  </section>
+
+  <!-- ===================== OUTFITY ===================== -->
+  <section id="tabOutfits" class="tab">
+    <div class="stats" id="outfitStats"></div>
+    <div class="ootd" id="ootd"></div>
+    <div class="toolbar">
+      <button class="btn secondary" id="btnShuffle">🔀 Zamiešať</button>
+      <select id="filterTop"><option value="">Všetky vrchné diely</option></select>
+      <select id="filterBottom"><option value="">Všetky spodné diely</option></select>
+      <select id="filterSeason">
+        <option value="">Každá sezóna</option>
+        <option value="jar">jar</option>
+        <option value="leto">leto</option>
+        <option value="jeseň">jeseň</option>
+        <option value="zima">zima</option>
+      </select>
+      <select id="filterOccasion">
+        <option value="">Každá príležitosť</option>
+        <option value="voľný čas">voľný čas</option>
+        <option value="práca">práca</option>
+        <option value="šport">šport</option>
+        <option value="večer">večer</option>
+      </select>
+      <label class="check"><input type="checkbox" id="filterFav"> len obľúbené ❤</label>
+      <span class="count-badge" id="outfitCount"></span>
+    </div>
+    <div id="outfitList" class="outfit-grid"></div>
+  </section>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "satnik-outfit-mixer-v1";
+
+  var BOTTOM_CATS = ["nohavice", "rifle", "sukňa", "skort", "kraťasy"];
+  var TOP_CATS    = ["tričko", "top", "vesta", "bunda", "mikina", "sako"];
+  var DRESS_CATS  = ["šaty"];
+
+  var GROUP_LABELS = {
+    bottom: "Spodné diely (nohavice · rifle · sukne · skorty · kraťasy)",
+    top:    "Vrchné diely (tričká · topy · vesty · bundy · mikiny · saká)",
+    dress:  "Šaty"
+  };
+
+  var SEASONS   = ["jar", "leto", "jeseň", "zima"];
+  var OCCASIONS = ["voľný čas", "práca", "šport", "večer"];
+
+  var state = load();
+  var shuffleSeed = null; // null = pôvodné poradie
+  var editingId = null;
+  var ootdSeed = Math.floor(Math.random() * 1e9);
+
+  function $(id) { return document.getElementById(id); }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var data = JSON.parse(raw);
+        if (data && Array.isArray(data.items)) {
+          data.favs = data.favs || {};
+          return data;
+        }
+      }
+    } catch (e) { /* poškodené dáta – začne sa odznova */ }
+    return { items: [], favs: {} };
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      toast("Úložisko prehliadača je plné – skús zmazať pár kusov alebo použiť menšie fotky.");
+    }
+  }
+
+  function groupOf(cat) {
+    if (BOTTOM_CATS.indexOf(cat) !== -1) return "bottom";
+    if (TOP_CATS.indexOf(cat) !== -1) return "top";
+    return "dress";
+  }
+
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function toast(msg) {
+    var el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { el.classList.remove("show"); }, 2600);
+  }
+
+  /* ---------- výber štítkov (sezóna / príležitosť) ---------- */
+
+  function buildPicker(id, values) {
+    var c = $(id);
+    values.forEach(function (v) {
+      var t = document.createElement("span");
+      t.className = "tag";
+      t.textContent = v;
+      t.setAttribute("data-val", v);
+      t.addEventListener("click", function () { t.classList.toggle("on"); });
+      c.appendChild(t);
+    });
+  }
+  function getPicked(id) {
+    return Array.prototype.map.call($(id).querySelectorAll(".tag.on"), function (t) {
+      return t.getAttribute("data-val");
+    });
+  }
+  function setPicked(id, arr) {
+    arr = arr || [];
+    Array.prototype.forEach.call($(id).querySelectorAll(".tag"), function (t) {
+      t.classList.toggle("on", arr.indexOf(t.getAttribute("data-val")) !== -1);
+    });
+  }
+  buildPicker("seasonPick", SEASONS);
+  buildPicker("occasionPick", OCCASIONS);
+
+  /* ---------- pridávanie / úprava ---------- */
+
+  function resizeImage(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var MAX = 600;
+          var scale = Math.min(1, MAX / Math.max(img.width, img.height));
+          var canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.82));
+        };
+        img.onerror = function () { reject(new Error("Súbor sa nedá načítať ako obrázok.")); };
+        img.src = reader.result;
+      };
+      reader.onerror = function () { reject(new Error("Súbor sa nepodarilo prečítať.")); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function addItem(src, name, cat, link, seasons, occasions) {
+    state.items.push({
+      id: uid(),
+      name: name || "",
+      cat: cat,
+      group: groupOf(cat),
+      src: src || "",
+      link: link || "",
+      seasons: seasons || [],
+      occasions: occasions || []
+    });
+  }
+
+  var pendingFiles = [];
+  var dropZone = $("dropZone");
+
+  $("inFile").addEventListener("change", function (e) {
+    pendingFiles = Array.prototype.slice.call(e.target.files);
+    updateDropLabel();
+  });
+
+  ["dragover", "dragenter"].forEach(function (ev) {
+    dropZone.addEventListener(ev, function (e) { e.preventDefault(); dropZone.classList.add("drag"); });
+  });
+  ["dragleave", "drop"].forEach(function (ev) {
+    dropZone.addEventListener(ev, function (e) { e.preventDefault(); dropZone.classList.remove("drag"); });
+  });
+  dropZone.addEventListener("drop", function (e) {
+    var files = Array.prototype.filter.call(e.dataTransfer.files, function (f) {
+      return f.type.indexOf("image/") === 0;
+    });
+    if (files.length) { pendingFiles = files; updateDropLabel(); }
+  });
+
+  function updateDropLabel() {
+    var n = pendingFiles.length;
+    dropZone.childNodes[0].textContent = n
+      ? "📷 Vybraté fotky: " + n + " – klikni na tlačidlo nižšie "
+      : "📷 …alebo klikni / pretiahni sem fotky oblečenia (môže byť aj viac naraz) ";
+  }
+
+  function resetForm() {
+    editingId = null;
+    $("inName").value = "";
+    $("inImgUrl").value = "";
+    $("inLink").value = "";
+    $("inFile").value = "";
+    pendingFiles = [];
+    updateDropLabel();
+    setPicked("seasonPick", []);
+    setPicked("occasionPick", []);
+    $("formTitle").textContent = "Pridať kus oblečenia";
+    $("btnAdd").textContent = "Pridať do šatníka";
+    $("btnCancelEdit").style.display = "none";
+  }
+
+  function enterEdit(item) {
+    editingId = item.id;
+    $("inName").value = item.name || "";
+    $("inCat").value = item.cat;
+    $("inImgUrl").value = "";
+    $("inLink").value = item.link || "";
+    $("inFile").value = "";
+    pendingFiles = [];
+    updateDropLabel();
+    setPicked("seasonPick", item.seasons || []);
+    setPicked("occasionPick", item.occasions || []);
+    $("formTitle").textContent = "Upraviť kus oblečenia";
+    $("btnAdd").textContent = "Uložiť zmeny";
+    $("btnCancelEdit").style.display = "";
+    showTab("closet");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    toast("Upravuješ kus – zmeň čo treba a daj „Uložiť zmeny“. Fotku meníš len ak vyberieš novú.");
+  }
+
+  $("btnCancelEdit").addEventListener("click", function () { resetForm(); toast("Úprava zrušená."); });
+
+  $("btnAdd").addEventListener("click", function () {
+    var name = $("inName").value.trim();
+    var cat  = $("inCat").value;
+    var url  = $("inImgUrl").value.trim();
+    var link = $("inLink").value.trim();
+    var seasons = getPicked("seasonPick");
+    var occasions = getPicked("occasionPick");
+
+    // --- režim úpravy ---
+    if (editingId) {
+      var item = null;
+      for (var k = 0; k < state.items.length; k++) {
+        if (state.items[k].id === editingId) { item = state.items[k]; break; }
+      }
+      if (!item) { resetForm(); return; }
+      item.name = name; item.cat = cat; item.group = groupOf(cat);
+      item.link = link; item.seasons = seasons; item.occasions = occasions;
+      var finishEdit = function () { save(); renderAll(); resetForm(); toast("Zmeny uložené ✔"); };
+      if (pendingFiles.length) {
+        resizeImage(pendingFiles[0]).then(function (d) { item.src = d; finishEdit(); })
+          .catch(function (e) { toast(e.message || "Chyba pri spracovaní fotky."); });
+      } else {
+        if (url) item.src = url;
+        finishEdit();
+      }
+      return;
+    }
+
+    // --- režim pridávania ---
+    if (!url && !pendingFiles.length && !link) {
+      toast("Pridaj fotku, odkaz na obrázok alebo aspoň odkaz na produkt.");
+      return;
+    }
+
+    var jobs = [];
+    if (pendingFiles.length) {
+      pendingFiles.forEach(function (f, i) {
+        jobs.push(resizeImage(f).then(function (dataUrl) {
+          addItem(dataUrl, name ? (pendingFiles.length > 1 ? name + " " + (i + 1) : name) : "", cat, link, seasons, occasions);
+        }));
+      });
+    } else {
+      addItem(url, name, cat, link, seasons, occasions);
+      jobs.push(Promise.resolve());
+    }
+
+    Promise.all(jobs).then(function () {
+      save();
+      renderAll();
+      resetForm();
+      toast("Pridané do šatníka ✔");
+    }).catch(function (err) {
+      toast(err.message || "Niečo sa pokazilo pri spracovaní fotky.");
+    });
+  });
+
+  /* ---------- export / import ---------- */
+
+  document.getElementById("btnExport").addEventListener("click", function () {
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "satnik-zaloha.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  document.getElementById("inImport").addEventListener("change", function (e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var data = JSON.parse(reader.result);
+        if (!data || !Array.isArray(data.items)) throw new Error();
+        state = { items: data.items, favs: data.favs || {} };
+        save();
+        renderAll();
+        toast("Šatník obnovený zo zálohy ✔");
+      } catch (err) {
+        toast("Tento súbor nie je platná záloha šatníka.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  });
+
+  /* ---------- vykreslenie šatníka ---------- */
+
+  function imgOrFallback(item, heightClassOnly) {
+    if (item.src) {
+      var img = document.createElement("img");
+      img.alt = item.name || item.cat;
+      img.loading = "lazy";
+      img.src = item.src;
+      img.onerror = function () {
+        var fail = document.createElement("div");
+        fail.className = "img-fail";
+        fail.innerHTML = "🖼️ Obrázok sa nepodarilo načítať" +
+          (item.link ? '<a class="link-out" href="' + escapeAttr(item.link) + '" target="_blank" rel="noopener">Otvoriť odkaz ↗</a>' : "");
+        img.replaceWith(fail);
+      };
+      return img;
+    }
+    var fail = document.createElement("div");
+    fail.className = "img-fail";
+    fail.innerHTML = "🔗 Bez fotky" +
+      (item.link ? '<a class="link-out" href="' + escapeAttr(item.link) + '" target="_blank" rel="noopener">Otvoriť odkaz ↗</a>' : "");
+    return fail;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function escapeAttr(s) { return escapeHtml(s); }
+
+  function matchSearch(it, q) {
+    if (!q) return true;
+    return (it.name || "").toLowerCase().indexOf(q) !== -1 ||
+           (it.cat  || "").toLowerCase().indexOf(q) !== -1;
+  }
+
+  function makeItemCard(item) {
+    var card = document.createElement("div");
+    card.className = "item-card";
+    card.appendChild(imgOrFallback(item));
+
+    var tags = (item.seasons || []).concat(item.occasions || []);
+    var meta = document.createElement("div");
+    meta.className = "meta";
+    meta.innerHTML =
+      '<div class="name">' + escapeHtml(item.name || "(bez názvu)") + "</div>" +
+      '<span class="chip">' + escapeHtml(item.cat) + "</span>" +
+      (item.link ? '<br><a class="link-out" href="' + escapeAttr(item.link) + '" target="_blank" rel="noopener">e-shop ↗</a>' : "") +
+      (tags.length ? '<div class="mini-tags">' + tags.map(function (t) { return "<span>" + escapeHtml(t) + "</span>"; }).join("") + "</div>" : "");
+    card.appendChild(meta);
+
+    var edit = document.createElement("button");
+    edit.className = "edit";
+    edit.title = "Upraviť";
+    edit.textContent = "✎";
+    edit.addEventListener("click", function () { enterEdit(item); });
+    card.appendChild(edit);
+
+    var del = document.createElement("button");
+    del.className = "del";
+    del.title = "Zmazať";
+    del.textContent = "✕";
+    del.addEventListener("click", function () {
+      if (!confirm("Zmazať „" + (item.name || item.cat) + "“ zo šatníka?")) return;
+      state.items = state.items.filter(function (it) { return it.id !== item.id; });
+      Object.keys(state.favs).forEach(function (k) {
+        if (k.indexOf(item.id) !== -1) delete state.favs[k];
+      });
+      if (editingId === item.id) resetForm();
+      save();
+      renderAll();
+    });
+    card.appendChild(del);
+    return card;
+  }
+
+  function renderCloset() {
+    var root = $("closetList");
+    root.innerHTML = "";
+
+    if (!state.items.length) {
+      root.innerHTML = '<div class="empty">Šatník je zatiaľ prázdny.<br>Pridaj prvý kus oblečenia hore vo formulári 👆</div>';
+      return;
+    }
+
+    var q = ($("searchCloset").value || "").trim().toLowerCase();
+    var shown = 0;
+
+    ["top", "bottom", "dress"].forEach(function (group) {
+      var items = state.items.filter(function (it) { return it.group === group && matchSearch(it, q); });
+      if (!items.length) return;
+      shown += items.length;
+
+      var title = document.createElement("div");
+      title.className = "group-title";
+      title.textContent = GROUP_LABELS[group] + " · " + items.length;
+      root.appendChild(title);
+
+      var grid = document.createElement("div");
+      grid.className = "grid";
+      items.forEach(function (item) { grid.appendChild(makeItemCard(item)); });
+      root.appendChild(grid);
+    });
+
+    if (!shown) {
+      root.innerHTML = '<div class="empty">Hľadaniu „' + escapeHtml(q) + "“ nezodpovedá žiadny kus.</div>";
+    }
+  }
+
+  /* ---------- outfity ---------- */
+
+  function buildCombos() {
+    var tops = state.items.filter(function (it) { return it.group === "top"; });
+    var bottoms = state.items.filter(function (it) { return it.group === "bottom"; });
+    var dresses = state.items.filter(function (it) { return it.group === "dress"; });
+
+    var combos = [];
+    tops.forEach(function (t) {
+      bottoms.forEach(function (b) {
+        combos.push({ key: t.id + "|" + b.id, top: t, bottom: b });
+      });
+    });
+    dresses.forEach(function (d) {
+      combos.push({ key: "dress|" + d.id, dress: d });
+    });
+    return combos;
+  }
+
+  // deterministické miešanie podľa seedu, aby sa poradie nemenilo pri každom prekreslení
+  function seededShuffle(arr, seed) {
+    var a = arr.slice();
+    var s = seed;
+    for (var i = a.length - 1; i > 0; i--) {
+      s = (s * 9301 + 49297) % 233280;
+      var j = Math.floor((s / 233280) * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  function renderFilters() {
+    var tops = state.items.filter(function (it) { return it.group === "top"; });
+    var bottoms = state.items.filter(function (it) { return it.group === "bottom"; });
+
+    fillFilter(document.getElementById("filterTop"), tops, "Všetky vrchné diely");
+    fillFilter(document.getElementById("filterBottom"), bottoms, "Všetky spodné diely");
+  }
+
+  function fillFilter(sel, items, allLabel) {
+    var current = sel.value;
+    sel.innerHTML = '<option value="">' + allLabel + "</option>";
+    items.forEach(function (it) {
+      var o = document.createElement("option");
+      o.value = it.id;
+      o.textContent = (it.name || it.cat);
+      sel.appendChild(o);
+    });
+    sel.value = current;
+    if (sel.value !== current) sel.value = "";
+  }
+
+  function currentFilters() {
+    return {
+      fTop: $("filterTop").value,
+      fBottom: $("filterBottom").value,
+      fSeason: $("filterSeason").value,
+      fOcc: $("filterOccasion").value,
+      onlyFav: $("filterFav").checked
+    };
+  }
+
+  // outfit prejde štítkovým filtrom, ak ho obsahuje každý kus s daným štítkom
+  // (kus bez štítkov sa berie ako "hodí sa vždy")
+  function tagPass(c, key, val) {
+    if (!val) return true;
+    var pieces = c.dress ? [c.dress] : [c.top, c.bottom];
+    return pieces.every(function (p) {
+      var t = p[key] || [];
+      return t.length === 0 || t.indexOf(val) !== -1;
+    });
+  }
+
+  function comboPasses(c, f) {
+    if (f.fTop && (!c.top || c.top.id !== f.fTop)) return false;
+    if (f.fBottom && (!c.bottom || c.bottom.id !== f.fBottom)) return false;
+    if (f.onlyFav && !state.favs[c.key]) return false;
+    if (!tagPass(c, "seasons", f.fSeason)) return false;
+    if (!tagPass(c, "occasions", f.fOcc)) return false;
+    return true;
+  }
+
+  function makeFavBtn(c) {
+    var fav = document.createElement("button");
+    fav.className = "fav-btn" + (state.favs[c.key] ? " on" : "");
+    fav.textContent = "❤";
+    fav.title = "Obľúbený outfit";
+    fav.addEventListener("click", function () {
+      if (state.favs[c.key]) delete state.favs[c.key];
+      else state.favs[c.key] = true;
+      save();
+      refreshOutfitsTab();
+    });
+    return fav;
+  }
+
+  function makeOutfitCard(c) {
+    var card = document.createElement("div");
+    card.className = "outfit-card" + (c.dress ? " single" : "");
+
+    var imgs = document.createElement("div");
+    imgs.className = "imgs";
+    if (c.dress) {
+      imgs.appendChild(imgOrFallback(c.dress));
+    } else {
+      imgs.appendChild(imgOrFallback(c.top));
+      imgs.appendChild(imgOrFallback(c.bottom));
+    }
+    card.appendChild(imgs);
+
+    var labels = document.createElement("div");
+    labels.className = "labels";
+    if (c.dress) {
+      labels.innerHTML = "<b>" + escapeHtml(c.dress.name || c.dress.cat) + "</b> · šaty";
+    } else {
+      labels.innerHTML =
+        "<b>" + escapeHtml(c.top.name || c.top.cat) + "</b> · " + escapeHtml(c.top.cat) + "<br>" +
+        "<b>" + escapeHtml(c.bottom.name || c.bottom.cat) + "</b> · " + escapeHtml(c.bottom.cat);
+    }
+    card.appendChild(labels);
+    card.appendChild(makeFavBtn(c));
+    return card;
+  }
+
+  function renderStats() {
+    var combos = buildCombos().length;
+    $("outfitStats").innerHTML =
+      '<div class="s"><b>' + state.items.length + "</b> kúskov v šatníku</div>" +
+      '<div class="s"><b>' + combos + "</b> možných outfitov</div>" +
+      '<div class="s"><b>' + Object.keys(state.favs).length + "</b> obľúbených ❤</div>";
+  }
+
+  function renderOOTD() {
+    var host = $("ootd");
+    host.innerHTML = "";
+
+    var head = document.createElement("div");
+    head.className = "ootd-head";
+    var h = document.createElement("h2");
+    h.textContent = "✨ Outfit dňa";
+    head.appendChild(h);
+    var btn = document.createElement("button");
+    btn.className = "btn";
+    btn.textContent = "🎲 Prekvap ma";
+    btn.addEventListener("click", function () { ootdSeed = Math.floor(Math.random() * 1e9); renderOOTD(); });
+    head.appendChild(btn);
+    host.appendChild(head);
+
+    var f = currentFilters();
+    var pool = buildCombos().filter(function (c) { return comboPasses(c, f); });
+    if (!pool.length) {
+      var e = document.createElement("div");
+      e.className = "empty";
+      e.style.padding = "26px";
+      e.textContent = "Zatiaľ tu nie je čo ukázať – pridaj viac oblečenia (alebo uvoľni filtre).";
+      host.appendChild(e);
+      return;
+    }
+
+    var c = pool[Math.abs(ootdSeed) % pool.length];
+    var card = document.createElement("div");
+    card.className = "ootd-card" + (c.dress ? " single" : "");
+
+    var imgs = document.createElement("div");
+    imgs.className = "imgs";
+    if (c.dress) {
+      imgs.appendChild(imgOrFallback(c.dress));
+    } else {
+      imgs.appendChild(imgOrFallback(c.top));
+      imgs.appendChild(imgOrFallback(c.bottom));
+    }
+    card.appendChild(imgs);
+
+    var body = document.createElement("div");
+    body.className = "body";
+    var t = document.createElement("div");
+    t.className = "t";
+    if (c.dress) {
+      t.innerHTML = "<b>" + escapeHtml(c.dress.name || c.dress.cat) + "</b><br><span class='sub'>šaty</span>";
+    } else {
+      t.innerHTML =
+        "<b>" + escapeHtml(c.top.name || c.top.cat) + "</b> <span class='sub'>(" + escapeHtml(c.top.cat) + ")</span><br>" +
+        "+ <b>" + escapeHtml(c.bottom.name || c.bottom.cat) + "</b> <span class='sub'>(" + escapeHtml(c.bottom.cat) + ")</span>";
+    }
+    body.appendChild(t);
+    card.appendChild(body);
+    card.appendChild(makeFavBtn(c));
+    host.appendChild(card);
+  }
+
+  function renderOutfits() {
+    var root = $("outfitList");
+    root.innerHTML = "";
+
+    var combos = buildCombos();
+    var f = currentFilters();
+    var filtered = combos.filter(function (c) { return comboPasses(c, f); });
+    if (shuffleSeed !== null) filtered = seededShuffle(filtered, shuffleSeed);
+
+    $("outfitCount").textContent = filtered.length + " z " + combos.length + " kombinácií";
+    $("outfitCountNav").textContent = combos.length ? "(" + combos.length + ")" : "";
+
+    if (!combos.length) {
+      root.innerHTML = '<div class="empty" style="grid-column:1/-1">Zatiaľ žiadne outfity.<br>' +
+        "Pridaj do šatníka aspoň jeden vrchný a jeden spodný diel (alebo šaty) a kombinácie sa poskladajú samé ✨</div>";
+      return;
+    }
+    if (!filtered.length) {
+      root.innerHTML = '<div class="empty" style="grid-column:1/-1">Tomuto filtru nezodpovedá žiadny outfit.</div>';
+      return;
+    }
+
+    filtered.forEach(function (c) { root.appendChild(makeOutfitCard(c)); });
+  }
+
+  function refreshOutfitsTab() {
+    renderStats();
+    renderOOTD();
+    renderOutfits();
+  }
+
+  $("btnShuffle").addEventListener("click", function () {
+    shuffleSeed = Math.floor(Math.random() * 233280);
+    renderOutfits();
+  });
+  ["filterTop", "filterBottom", "filterSeason", "filterOccasion"].forEach(function (id) {
+    $(id).addEventListener("change", refreshOutfitsTab);
+  });
+  $("filterFav").addEventListener("change", refreshOutfitsTab);
+  $("searchCloset").addEventListener("input", renderCloset);
+
+  /* ---------- taby ---------- */
+
+  function showTab(name) {
+    document.getElementById("tabCloset").classList.toggle("active", name === "closet");
+    document.getElementById("tabOutfits").classList.toggle("active", name === "outfits");
+    document.getElementById("tabBtnCloset").classList.toggle("active", name === "closet");
+    document.getElementById("tabBtnOutfits").classList.toggle("active", name === "outfits");
+  }
+  document.getElementById("tabBtnCloset").addEventListener("click", function () { showTab("closet"); });
+  document.getElementById("tabBtnOutfits").addEventListener("click", function () { showTab("outfits"); });
+
+  function renderAll() {
+    renderCloset();
+    renderFilters();
+    refreshOutfitsTab();
+  }
+
+  renderAll();
+})();
+</script>
+
+<script>
+  // Service worker – beží len pri hostovaní cez http(s) (GitHub Pages a pod.),
+  // pri otvorení súboru priamo (file://) sa potichu preskočí.
+  if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("service-worker.js").catch(function () {});
+    });
+  }
+</script>
+</body>
+</html>

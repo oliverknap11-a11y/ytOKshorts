@@ -1,0 +1,22 @@
+{
+  "name": "moj-satnik-ios",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Natívny iOS obal (Capacitor) pre webovú appku Môj šatník.",
+  "scripts": {
+    "sync:web": "node scripts/sync-web.mjs",
+    "ios:add": "npm run sync:web && npx cap add ios",
+    "ios:sync": "npm run sync:web && npx cap sync ios",
+    "ios:open": "npx cap open ios",
+    "ios:assets": "npm run sync:web && npx @capacitor/assets generate --ios",
+    "doctor": "npx cap doctor"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/ios": "^8.4.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.4.0"
+  }
+}

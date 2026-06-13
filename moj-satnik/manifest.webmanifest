@@ -1,0 +1,19 @@
+{
+  "name": "Môj šatník – kombinátor outfitov",
+  "short_name": "Šatník",
+  "description": "Pridaj fotky oblečenia a appka poskladá všetky kombinácie outfitov.",
+  "lang": "sk",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#17141f",
+  "theme_color": "#17141f",
+  "categories": ["lifestyle", "shopping"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
