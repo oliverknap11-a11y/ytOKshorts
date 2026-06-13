@@ -1,16 +1,17 @@
 /**
- * Môj šatník – malý proxy pre AI virtual try-on.
+ * Môj šatník – malý proxy pre AI funkcie. Drží API kľúče (secrets), appka volá toto.
  *
- * Appka volá tento Worker; API kľúč k AI službe je tu ako tajomstvo (secret),
- * takže sa nikdy nedostane do appky. Voľba služby je cez premennú PROVIDER.
+ * Podporuje dve akcie (pole "action" v JSON tele):
+ *   - "tryon" (default): outfit oblečený na modelovi (virtual try-on)
+ *   - "to3d": z viacerých fotiek kusu vyrobí 3D model (GLB)
  *
- *   PROVIDER = "mock"  -> nič neplatíš, vráti ukážkový obrázok (na test pipeline)
- *   PROVIDER = "fashn" -> reálny try-on cez FASHN.ai (treba secret FASHN_API_KEY)
+ * Voľba služby cez premenné:
+ *   PROVIDER      = "mock" | "fashn"          (try-on)
+ *   PROVIDER_3D   = "mock" | "tripo"          (image -> 3D)
  *
- * Vstup (POST JSON):
- *   { model: <img>, top?: <img>, bottom?: <img>, dress?: <img> }
- *   kde <img> je URL alebo data URI obrázka.
- * Výstup: { image: <url alebo data URI výsledku> }
+ * Try-on vstup:  { action:"tryon", model, top?, bottom?, dress? }  -> { image }
+ * 3D vstup:      { action:"to3d", images:[<img>,...] }              -> { model: <glb url> }
+ * <img> je URL alebo data URI.
  */
 
 const CORS = {
@@ -35,15 +36,26 @@ export default {
     try { body = await req.json(); }
     catch { return json({ error: "Neplatné JSON telo." }, 400); }
 
-    if (!body.model) return json({ error: "Chýba 'model' (fotka osoby)." }, 400);
-    if (!body.top && !body.bottom && !body.dress)
-      return json({ error: "Chýba oblečenie (top/bottom/dress)." }, 400);
-
-    const provider = (env.PROVIDER || "mock").toLowerCase();
-    const fn = PROVIDERS[provider];
-    if (!fn) return json({ error: "Neznámy PROVIDER: " + provider }, 500);
+    const action = (body.action || "tryon").toLowerCase();
 
     try {
+      if (action === "to3d") {
+        if (!Array.isArray(body.images) || !body.images.length)
+          return json({ error: "Chýbajú fotky (images)." }, 400);
+        const provider = (env.PROVIDER_3D || "mock").toLowerCase();
+        const fn = TO3D[provider];
+        if (!fn) return json({ error: "Neznámy PROVIDER_3D: " + provider }, 500);
+        const model = await fn(body, env);
+        return json({ model, provider });
+      }
+
+      // --- try-on ---
+      if (!body.model) return json({ error: "Chýba 'model' (fotka osoby)." }, 400);
+      if (!body.top && !body.bottom && !body.dress)
+        return json({ error: "Chýba oblečenie (top/bottom/dress)." }, 400);
+      const provider = (env.PROVIDER || "mock").toLowerCase();
+      const fn = TRYON[provider];
+      if (!fn) return json({ error: "Neznámy PROVIDER: " + provider }, 500);
       const image = await fn(body, env);
       return json({ image, provider });
     } catch (e) {
@@ -52,27 +64,24 @@ export default {
   },
 };
 
-const PROVIDERS = {
-  // Ukážkový režim – bez kľúča, bez platby. Vráti vstupný obrázok,
-  // aby sa dala vyskúšať celá cesta appka → proxy → výsledok.
+/* ============================ TRY-ON ============================ */
+
+const TRYON = {
+  // Ukážkový režim – bez kľúča, bez platby.
   async mock(b) {
     await new Promise((r) => setTimeout(r, 600));
     return b.dress || b.top || b.bottom || b.model;
   },
 
-  // Reálny try-on cez FASHN.ai. POZOR: presné názvy polí/endpointov si over
-  // podľa aktuálnej dokumentácie https://docs.fashn.ai – sú izolované tu nižšie.
+  // Reálny try-on cez FASHN.ai (over polia podľa https://docs.fashn.ai).
   async fashn(b, env) {
     if (!env.FASHN_API_KEY) throw new Error("Chýba secret FASHN_API_KEY.");
-    const apply = (modelImg, garment, category) =>
-      fashnRun(modelImg, garment, category, env.FASHN_API_KEY);
-
+    const apply = (m, g, cat) => fashnRun(m, g, cat, env.FASHN_API_KEY);
     if (b.dress) return await apply(b.model, b.dress, "one-pieces");
-
-    let current = b.model;
-    if (b.top) current = await apply(current, b.top, "tops");
-    if (b.bottom) current = await apply(current, b.bottom, "bottoms");
-    return current;
+    let cur = b.model;
+    if (b.top) cur = await apply(cur, b.top, "tops");
+    if (b.bottom) cur = await apply(cur, b.bottom, "bottoms");
+    return cur;
   },
 };
 
@@ -80,21 +89,14 @@ async function fashnRun(modelImage, garmentImage, category, key) {
   const start = await fetch("https://api.fashn.ai/v1/run", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
-    body: JSON.stringify({
-      model_name: "tryon-v1.5",
-      inputs: { model_image: modelImage, garment_image: garmentImage, category },
-    }),
+    body: JSON.stringify({ model_name: "tryon-v1.5", inputs: { model_image: modelImage, garment_image: garmentImage, category } }),
   });
   if (!start.ok) throw new Error("FASHN run zlyhal: " + start.status + " " + (await start.text()));
   const { id } = await start.json();
   if (!id) throw new Error("FASHN nevrátil id.");
-
-  // poll
   for (let i = 0; i < 40; i++) {
     await new Promise((r) => setTimeout(r, 1500));
-    const st = await fetch("https://api.fashn.ai/v1/status/" + id, {
-      headers: { Authorization: "Bearer " + key },
-    });
+    const st = await fetch("https://api.fashn.ai/v1/status/" + id, { headers: { Authorization: "Bearer " + key } });
     const data = await st.json();
     if (data.status === "completed") {
       const out = Array.isArray(data.output) ? data.output[0] : data.output;
@@ -105,3 +107,41 @@ async function fashnRun(modelImage, garmentImage, category, key) {
   }
   throw new Error("FASHN: vypršal čas (timeout).");
 }
+
+/* ============================ IMAGE -> 3D ============================ */
+
+const TO3D = {
+  // Ukážka – vráti reálny verejný GLB (kačička z Khronos sample assets),
+  // aby sa dal otestovať 3D prehliadač v appke bez platby/kľúča.
+  async mock() {
+    await new Promise((r) => setTimeout(r, 800));
+    return "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Duck/glTF-Binary/Duck.glb";
+  },
+
+  // Reálne image -> 3D cez Tripo3D (over endpointy podľa https://platform.tripo3d.ai/docs).
+  async tripo(b, env) {
+    if (!env.TRIPO_API_KEY) throw new Error("Chýba secret TRIPO_API_KEY.");
+    const headers = { "Content-Type": "application/json", Authorization: "Bearer " + env.TRIPO_API_KEY };
+    const start = await fetch("https://api.tripo3d.ai/v2/openapi/task", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ type: "multiview_to_model", files: b.images.map((url) => ({ type: "url", url })) }),
+    });
+    if (!start.ok) throw new Error("Tripo task zlyhal: " + start.status + " " + (await start.text()));
+    const startData = await start.json();
+    const taskId = startData && startData.data && startData.data.task_id;
+    if (!taskId) throw new Error("Tripo nevrátil task_id.");
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const st = await fetch("https://api.tripo3d.ai/v2/openapi/task/" + taskId, { headers });
+      const data = (await st.json()).data || {};
+      if (data.status === "success") {
+        const glb = data.output && (data.output.pbr_model || data.output.model);
+        if (!glb) throw new Error("Tripo: prázdny výstup.");
+        return glb;
+      }
+      if (data.status === "failed" || data.status === "banned") throw new Error("Tripo zlyhal.");
+    }
+    throw new Error("Tripo: vypršal čas (timeout).");
+  },
+};

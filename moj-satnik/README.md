@@ -15,6 +15,7 @@ a ona ti automaticky poskladá **všetky kombinácie outfitov** ako obrázkové 
   šaty sa zobrazia ako samostatné outfity.
 - **Outfit dňa** – tip na oblečenie jedným klikom („Prekvap ma“).
 - **AI skúšobňa (voliteľné)** – outfit oblečený na modelovi cez AI (viď [`AI-TRYON.md`](AI-TRYON.md) a [`tryon-proxy/`](tryon-proxy/)).
+- **3D model kusu (voliteľné)** – z viacerých fotiek vytvor otáčateľný 3D model (viď [`3D-MODEL.md`](3D-MODEL.md)).
 - **Štítky** sezóna a príležitosť + filtrovanie outfitov podľa nich.
 - **Úprava a vyhľadávanie** – kusy môžeš upravovať a hľadať v šatníku.
 - **Obľúbené** ❤ – outfity, ktoré sa ti páčia, si označíš a vyfiltruješ.
