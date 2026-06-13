@@ -337,6 +337,9 @@
     font-size: .9rem; box-shadow: var(--shadow);
   }
   .item-card .edit:hover { background: var(--accent); color: #fff; }
+  .item-card .three-d { position: absolute; top: 8px; left: 8px; border: none; background: rgba(13,11,18,.65); color: #fff; border-radius: 999px; font-size: .72rem; padding: 5px 9px; cursor: pointer; box-shadow: var(--shadow); }
+  .item-card .three-d:hover { background: var(--accent); }
+  model-viewer { width: 100%; height: 360px; background: #2a2238; border-radius: 12px; display: block; }
 
   /* --- štatistiky --- */
   .stats { display: flex; gap: 22px; flex-wrap: wrap; margin: 2px 0 20px; color: var(--muted); font-size: .85rem; }
@@ -542,6 +545,14 @@
     <button class="modal-x" id="tryonClose" title="Zavrieť">✕</button>
     <div class="modal-title">🧍 AI skúšobňa</div>
     <div id="tryonBody"></div>
+  </div>
+</div>
+
+<div id="model3dModal" class="modal" hidden>
+  <div class="modal-card">
+    <button class="modal-x" id="model3dClose" title="Zavrieť">✕</button>
+    <div class="modal-title">🧊 3D model kusu</div>
+    <div id="model3dBody"></div>
   </div>
 </div>
 
@@ -904,6 +915,13 @@
     edit.textContent = "✎";
     edit.addEventListener("click", function () { enterEdit(item); });
     card.appendChild(edit);
+
+    var td = document.createElement("button");
+    td.className = "three-d";
+    td.title = "3D model";
+    td.textContent = item.model3d ? "🧊 3D ✓" : "🧊 3D";
+    td.addEventListener("click", function () { open3D(item); });
+    card.appendChild(td);
 
     var del = document.createElement("button");
     del.className = "del";
@@ -1272,6 +1290,114 @@
     if (rg) rg.addEventListener("click", function () { delete tryonCache[model.id + "|" + c.key]; openTryon(c); });
   }
 
+  /* ---------- 3D model kusu (z viacerých fotiek) ---------- */
+
+  function resizeMany(files) {
+    return Promise.all(files.map(function (f) { return resizeImage(f); }));
+  }
+
+  function collect3DImages(item) {
+    var a = [];
+    if (item.src) a.push(item.src);
+    if (item.angles) a = a.concat(item.angles);
+    return a;
+  }
+
+  var mvLoading = null;
+  function ensureModelViewer() {
+    if (window.customElements && customElements.get("model-viewer")) return Promise.resolve();
+    if (mvLoading) return mvLoading;
+    mvLoading = new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.type = "module";
+      s.src = "https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js";
+      s.onload = function () { resolve(); };
+      s.onerror = function () { mvLoading = null; reject(new Error("Nepodarilo sa načítať 3D prehliadač (potrebné pripojenie na internet).")); };
+      document.head.appendChild(s);
+    });
+    return mvLoading;
+  }
+
+  function renderViewer(body, url) {
+    body.innerHTML = '<div class="tryon-loading"><div class="spinner"></div>Načítavam 3D model…</div>';
+    ensureModelViewer().then(function () {
+      body.innerHTML =
+        '<model-viewer src="' + escapeAttr(url) + '" camera-controls auto-rotate ar ' +
+        'shadow-intensity="1" exposure="1"></model-viewer>' +
+        '<p class="hint">Ťahaním model otočíš. (Kým nepripojíš reálnu 3D službu, zobrazuje sa ukážkový model.)</p>';
+    }).catch(function (e) {
+      body.innerHTML = '<div class="tryon-loading">⚠️ ' + escapeHtml(e.message) + "</div>";
+    });
+  }
+
+  function open3D(item) {
+    $("model3dModal").hidden = false;
+    render3DSetup(item);
+  }
+
+  function render3DSetup(item) {
+    var body = $("model3dBody");
+    if (item.model3d) { renderViewer(body, item.model3d); return; }
+
+    var imgs = collect3DImages(item);
+    body.innerHTML =
+      '<p class="hint">Z fotiek kusu vyrobíme otáčateľný 3D model. Pre lepší výsledok pridaj ' +
+      "fotky z viacerých uhlov (predok, bok, zadok…).</p>" +
+      '<div class="tryon-srcs">' + imgs.map(function (s) { return '<img src="' + escapeAttr(s) + '">'; }).join("") + "</div>" +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">' +
+      '<label class="btn secondary" style="display:inline-block">➕ Pridať uhly' +
+      '<input type="file" id="add3dAngles" accept="image/*" multiple style="display:none"></label>' +
+      '<button class="btn" id="gen3dBtn">🧊 Vytvoriť 3D model (' + imgs.length + ")</button></div>";
+
+    var ai = $("add3dAngles");
+    if (ai) ai.addEventListener("change", function (e) {
+      var files = Array.prototype.slice.call(e.target.files);
+      if (!files.length) return;
+      resizeMany(files).then(function (uris) {
+        item.angles = (item.angles || []).concat(uris);
+        save();
+        render3DSetup(item);
+      }).catch(function (err) { toast(err.message || "Chyba pri spracovaní fotky."); });
+    });
+    var gb = $("gen3dBtn");
+    if (gb) gb.addEventListener("click", function () { generate3D(item); });
+  }
+
+  function generate3D(item) {
+    if (!state.settings.proxyUrl) {
+      toast("Najprv nastav adresu proxy v sekcii „AI skúšobňa“ (záložka Outfity).");
+      return;
+    }
+    var images = collect3DImages(item);
+    var body = $("model3dBody");
+    if (!images.length) { body.innerHTML = '<div class="tryon-loading">Najprv pridaj k tomuto kusu aspoň jednu fotku.</div>'; return; }
+
+    body.innerHTML = '<div class="tryon-loading"><div class="spinner"></div>Vyrábam 3D model z ' + images.length +
+      " fotiek…<br>(môže to chvíľu trvať)</div>";
+
+    fetch(state.settings.proxyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "to3d", images: images })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.j || !res.j.model) {
+          throw new Error(res.j && res.j.error ? res.j.error : "Proxy nevrátil 3D model.");
+        }
+        item.model3d = res.j.model;
+        save();
+        renderCloset();
+        renderViewer(body, item.model3d);
+      })
+      .catch(function (err) {
+        body.innerHTML = '<div class="tryon-loading">⚠️ ' + escapeHtml(err.message || "Generovanie 3D zlyhalo.") +
+          '<br><br><button class="btn secondary" id="threeDRetry">Skúsiť znova</button></div>';
+        var rb = $("threeDRetry");
+        if (rb) rb.addEventListener("click", function () { generate3D(item); });
+      });
+  }
+
   function refreshOutfitsTab() {
     renderAiPanel();
     renderStats();
@@ -1295,6 +1421,8 @@
   });
   $("tryonClose").addEventListener("click", function () { $("tryonModal").hidden = true; });
   $("tryonModal").addEventListener("click", function (e) { if (e.target === this) this.hidden = true; });
+  $("model3dClose").addEventListener("click", function () { $("model3dModal").hidden = true; });
+  $("model3dModal").addEventListener("click", function (e) { if (e.target === this) this.hidden = true; });
 
   /* ---------- taby ---------- */
 
