@@ -1,0 +1,12 @@
+# závislosti
+node_modules/
+
+# generovaný webový obsah (vzniká cez `npm run sync:web` z ../)
+www/
+
+# natívny iOS projekt generuje Capacitor cez `npx cap add ios` na Macu
+ios/
+
+# rôzne
+.DS_Store
+*.log

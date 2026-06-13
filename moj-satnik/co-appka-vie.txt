@@ -4,8 +4,17 @@ MÔJ ŠATNÍK – KOMBINÁTOR OUTFITOV
 
 AKO JU SPUSTÍŠ
 --------------
-Netreba nič inštalovať. Stačí otvoriť súbor index.html v prehliadači
-(dvojklikom) – funguje na počítači aj v mobile.
+1) NAJJEDNODUCHŠIE: stačí otvoriť súbor index.html v prehliadači
+   (dvojklikom) – funguje na počítači aj v mobile, bez inštalácie.
+
+2) AKO APPKA NA PLOCHE (zadarmo, bez App Store): keď je appka na webe
+   (napr. cez GitHub Pages), otvor ju v Safari -> Zdieľať ->
+   „Pridať na plochu“. Pridá sa ikona a appka beží na celú obrazovku
+   aj offline.
+
+3) V APP STORE: v priečinku ios-app/ je pripravený projekt (Capacitor)
+   a kompletný návod ios-app/APP-STORE.md. Publikovanie vyžaduje Mac
+   s Xcode a Apple Developer účet (99 USD/rok).
 
 PRIDÁVANIE OBLEČENIA
 --------------------
