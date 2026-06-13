@@ -10,6 +10,16 @@ py -3.12 -m ytokshorts news --count 1 --no-llm --avatar --avatar-mode local --av
 ```
 Output: `work\news\news_01.mp4`
 
+## Post a Short to YouTube (manual, recommended)
+Each clip now comes with a ready-to-paste metadata file:
+- Video: `work\news\news_01.mp4`
+- Title + description + hashtags: `work\news\news_01.txt`
+
+Steps: YouTube Studio → **Create → Upload** → pick `news_01.mp4` → open
+`news_01.txt`, copy the **TITLE** into the title field and the **DESCRIPTION**
+into the description → set visibility (Public / Schedule) → Publish. It's vertical
+and <60s, so it posts as a Short.
+
 ## Make Shorts automatically for every NEW story
 Register the scheduled task once (runs every 30 min, only new stories):
 ```powershell

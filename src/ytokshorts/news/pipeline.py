@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -21,6 +21,7 @@ from . import avatar as avatar_mod
 from . import background as background_mod
 from . import compose as compose_mod
 from . import feeds as feeds_mod
+from . import metadata as metadata_mod
 from . import portrait as portrait_mod
 from . import script as script_mod
 from . import state as state_mod
@@ -43,6 +44,9 @@ class NewsClip:
     publish_at: str | None = None
     video_id: str | None = None
     country: str = ""
+    youtube_title: str = ""
+    description: str = ""
+    hashtags: list = field(default_factory=list)
 
 
 def run_news_pipeline(
@@ -151,6 +155,14 @@ def run_news_pipeline(
             )
         run(cmd)
 
+        # Copy-paste-ready YouTube metadata, saved next to the clip.
+        hashtags = metadata_mod.build_hashtags(country)
+        yt_title = metadata_mod.build_youtube_title(result.title)
+        description = metadata_mod.build_description(result.script, item.link, hashtags)
+        (clips_dir / f"news_{i + 1:02d}.txt").write_text(
+            metadata_mod.build_upload_txt(yt_title, description), encoding="utf-8"
+        )
+
         results.append(
             NewsClip(
                 index=i + 1,
@@ -161,6 +173,9 @@ def run_news_pipeline(
                 duration=round(duration, 3),
                 publish_at=schedule[i],
                 country=country or "",
+                youtube_title=yt_title,
+                description=description,
+                hashtags=hashtags,
             )
         )
 
