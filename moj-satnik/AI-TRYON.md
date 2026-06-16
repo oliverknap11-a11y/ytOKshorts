@@ -81,8 +81,9 @@ Podľa tvojich rozhodnutí (službu vyberieme neskôr, prednastavené modely, pr
 server) je už postavené:
 
 - **Proxy server** – `tryon-proxy/` (Cloudflare Worker) s voľbou služby cez
-  premennú `PROVIDER`. Má režim **`mock`** (funguje hneď, zadarmo) a pripravený
-  adaptér **`fashn`** (FASHN.ai). Pridať inú službu = jeden adaptér navyše.
+  premennú `PROVIDER`: **`mock`** (zdarma, ukážka), **`replicate`** (IDM-VTON –
+  lacný TEST, ⚠️ nekomerčná licencia, nie do predaja) a **`fashn`** (komerčné,
+  produkcia). Pridať inú službu = jeden adaptér navyše.
 - **Appka** – sekcia „AI skúšobňa“ (adresa proxy + výber prednastaveného modela)
   a tlačidlo **„🧍 Obleč na modela“** pri každom outfite aj pri Outfit dňa.
   Volá proxy, zobrazí výsledok, vie ho uložiť, a kešuje (nešetrí kredit zbytočne).
