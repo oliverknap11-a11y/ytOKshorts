@@ -1,0 +1,83 @@
+# ytOKshorts configuration. Copy to `ytokshorts.toml` and edit.
+# Every value shown is the built-in default — delete what you don't override.
+
+work_dir = "work"
+
+[download]
+# yt-dlp format selector. Caps at 1080p; Shorts don't need more.
+format = "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
+# cookies = "cookies.txt"   # for age-restricted / members-only sources
+
+[highlights]
+min_duration = 15.0     # shortest acceptable clip (seconds)
+max_duration = 58.0     # longest clip; must be <= 60 (Shorts limit)
+target_count = 5        # how many clips to cut from one source
+spacing = 5.0           # minimum gap between chosen clips (seconds)
+window = 0.5            # audio analysis window (seconds)
+
+[caption]
+enabled = true
+model = "base"          # tiny | base | small | medium | large-v3
+# language = "en"       # omit to auto-detect
+font = "Arial"
+font_size = 18
+position = "bottom"     # bottom | center | top
+outline = 2
+
+[reframe]
+width = 1080
+height = 1920
+mode = "blur"           # "blur" (fit + blurred bars) or "crop" (zoom + center-crop)
+
+[news]
+# AI-scripted news Shorts (the `ytokshorts news` command).
+feed = "https://feeds.bbci.co.uk/sport/football/rss.xml"  # any RSS 2.0 sports feed
+count = 3
+model = "claude-opus-4-8"   # Claude model for scripts (needs ANTHROPIC_API_KEY)
+effort = "low"              # low | medium | high | max
+voice = "en-US-GuyNeural"   # edge-tts neural voice (free, no key)
+words_target = 60           # ~25s of speech
+caption_words = 3           # words per on-screen subtitle line
+caption_style = "stack"     # "stack" = subtitles build down the screen; "pop" = one chunk at a time
+animate = true              # caption fade-in / dim animation
+emphasize = true            # highlight numbers/scores in gold
+# background = "clips/"     # image / video / folder you own; empty = drawn pitch
+scrim = 0.4                 # darkening over image/video backgrounds (0–1)
+bg_top = "#1B6B34"          # pitch / gradient colours (top → bottom)
+bg_bottom = "#0A2A14"
+
+[avatar]
+# Optional AI presenter composited in front of the pitch (news Shorts).
+enabled = false
+mode = "clips"            # "clips" | "photo" (HeyGen) | "local" (SadTalker) | "heygen"
+clips_dir = "presenters"  # clips mode: <country>.mp4 (e.g. england.mp4) + neutral.mp4
+photo_dir = "avatars"     # photo/local: <country>.png (e.g. portugal.png) + neutral.png
+green_matte = true        # auto-remove the image background for keying
+framing = "auto"          # "auto" crops full-body shots to head & shoulders; "upper" | "full"
+use_avatar_iv = true      # photo mode: HeyGen Avatar IV motion engine
+chroma_color = "#00FF00"  # green-screen colour to key out ("" for alpha video)
+# local mode (free, needs a GPU): the lip-sync command + the folder to run it in.
+local_command = 'python inference.py --source_image "{image}" --driven_audio "{audio}" --result_dir "{result_dir}" --still --preprocess full'
+local_cwd = "SadTalker"
+scale = 0.62              # presenter height as a fraction of the frame
+position = "bottom"       # "bottom" | "center"
+subtitles = "top"         # keep subtitles above her head: "top" | "center" | "full"
+# --- heygen mode only ---
+api_key_env = "HEYGEN_API_KEY"
+neutral_avatar = ""       # HeyGen avatar_id for neutral / your-logo kit
+[avatar.avatar_map]       # country -> HeyGen avatar_id (one look per national kit)
+# england = "avatar_id_here"
+# france  = "avatar_id_here"
+
+[upload]
+enabled = false
+client_secrets = "client_secret.json"   # OAuth client from Google Cloud Console
+token = "token.json"                     # cached after first auth
+privacy = "private"                      # private | unlisted | public
+category_id = "22"                       # 22 = People & Blogs
+tags = ["shorts"]
+made_for_kids = false
+title_suffix = "#shorts"
+# Schedule: publish the first clip at this UTC time, space the rest by interval.
+# schedule_start = "2026-06-12T09:00:00Z"
+interval_hours = 24.0

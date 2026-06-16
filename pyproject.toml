@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ytokshorts"
+version = "0.1.0"
+description = "Turn long videos into ready-to-publish YouTube Shorts: download, auto-clip highlights, vertical reframe, burn-in captions, and schedule uploads."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "ytOKshorts" }]
+keywords = ["youtube", "shorts", "video", "ffmpeg", "captions", "whisper"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Environment :: Console",
+    "Topic :: Multimedia :: Video",
+]
+
+# Core runtime dependency. The heavy/optional pieces (transcription, upload,
+# numpy acceleration) live in extras so a base install stays light and the
+# pure logic imports cleanly without them.
+dependencies = [
+    "yt-dlp>=2024.1.0",
+    "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+# Faster-whisper for caption transcription.
+captions = ["faster-whisper>=1.0.0"]
+# YouTube Data API v3 upload + scheduling.
+upload = [
+    "google-api-python-client>=2.100.0",
+    "google-auth-oauthlib>=1.2.0",
+    "google-auth-httplib2>=0.2.0",
+]
+# AI-scripted news Shorts: Claude scripts + edge-tts voiceover + drawn pitch bg.
+news = [
+    "anthropic>=0.40",
+    "edge-tts>=6.1",
+    "pillow>=9.0",
+]
+# AI presenter (photo lip-sync): background removal for green-screen keying.
+avatar = ["rembg>=2.0", "pillow>=9.0"]
+# Optional numpy fast-path for audio energy analysis (pure-Python fallback exists).
+fast = ["numpy>=1.23"]
+dev = ["pytest>=7.0"]
+all = [
+    "ytokshorts[captions,upload,news,avatar,fast,dev]",
+]
+
+[project.scripts]
+ytokshorts = "ytokshorts.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/oliverknap11-a11y/ytokshorts"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
