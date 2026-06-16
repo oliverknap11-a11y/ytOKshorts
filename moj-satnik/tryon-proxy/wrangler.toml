@@ -2,12 +2,13 @@ name = "satnik-tryon-proxy"
 main = "worker.js"
 compatibility_date = "2024-11-01"
 
-# Try-on služba: "mock" (zdarma, ukážka) alebo "fashn" (reálny try-on)
+# Try-on služba: "mock" (zdarma, ukážka) | "replicate" (IDM-VTON, len TEST – nekomerčné) | "fashn" (komerčné)
 # Image->3D služba: "mock" (vráti ukážkový GLB) alebo "tripo" (reálne 3D)
 [vars]
 PROVIDER = "mock"
 PROVIDER_3D = "mock"
 
 # API kľúče sa NEDÁVAJÚ sem, ale ako tajomstvá (secrets):
-#   wrangler secret put FASHN_API_KEY     # pre try-on (fashn)
-#   wrangler secret put TRIPO_API_KEY     # pre 3D (tripo)
+#   wrangler secret put REPLICATE_API_TOKEN   # try-on test (replicate / IDM-VTON)
+#   wrangler secret put FASHN_API_KEY         # try-on produkcia (fashn)
+#   wrangler secret put TRIPO_API_KEY         # 3D (tripo)

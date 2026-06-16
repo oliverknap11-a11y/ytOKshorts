@@ -83,6 +83,20 @@ const TRYON = {
     if (b.bottom) cur = await apply(cur, b.bottom, "bottoms");
     return cur;
   },
+
+  // Try-on cez Replicate (open-source IDM-VTON, model "cuuupid/idm-vton").
+  // ⚠️ LICENCIA: IDM-VTON je CC BY-NC-SA (NEkomerčné) – vhodné len na TEST,
+  //    nie do platenej/verejnej appky. Na produkciu použi fashn (komerčné).
+  async replicate(b, env) {
+    if (!env.REPLICATE_API_TOKEN) throw new Error("Chýba secret REPLICATE_API_TOKEN.");
+    const t = env.REPLICATE_API_TOKEN;
+    const apply = (human, garment, cat, desc) => replicateIdmVton(human, garment, cat, desc, t);
+    if (b.dress) return await apply(b.model, b.dress, "dresses", "dress");
+    let cur = b.model;
+    if (b.top) cur = await apply(cur, b.top, "upper_body", "top");
+    if (b.bottom) cur = await apply(cur, b.bottom, "lower_body", "bottom");
+    return cur;
+  },
 };
 
 async function fashnRun(modelImage, garmentImage, category, key) {
@@ -106,6 +120,31 @@ async function fashnRun(modelImage, garmentImage, category, key) {
     if (data.status === "failed") throw new Error("FASHN zlyhal: " + (data.error || "neznáma chyba"));
   }
   throw new Error("FASHN: vypršal čas (timeout).");
+}
+
+// Replicate IDM-VTON – over vstupné polia na https://replicate.com/cuuupid/idm-vton
+async function replicateIdmVton(humanImg, garmImg, category, desc, token) {
+  const start = await fetch("https://api.replicate.com/v1/models/cuuupid/idm-vton/predictions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Token " + token },
+    body: JSON.stringify({ input: { human_img: humanImg, garm_img: garmImg, garment_des: desc, category } }),
+  });
+  if (!start.ok) throw new Error("Replicate štart zlyhal: " + start.status + " " + (await start.text()));
+  let pred = await start.json();
+  const getUrl = (pred.urls && pred.urls.get) || ("https://api.replicate.com/v1/predictions/" + pred.id);
+  for (let i = 0; i < 90; i++) {
+    if (pred.status === "succeeded") {
+      const out = Array.isArray(pred.output) ? pred.output[0] : pred.output;
+      if (!out) throw new Error("Replicate: prázdny výstup.");
+      return out;
+    }
+    if (pred.status === "failed" || pred.status === "canceled")
+      throw new Error("Replicate zlyhal: " + (pred.error || "neznáma chyba"));
+    await new Promise((r) => setTimeout(r, 2000));
+    const poll = await fetch(getUrl, { headers: { Authorization: "Token " + token } });
+    pred = await poll.json();
+  }
+  throw new Error("Replicate: vypršal čas (timeout).");
 }
 
 /* ============================ IMAGE -> 3D ============================ */
